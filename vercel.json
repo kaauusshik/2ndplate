@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "DATABASE_URL=pglite:memory:// AUTH_DISABLED=true NITRO_PRESET=vercel pnpm build",
-  "installCommand": "pnpm install"
+  "buildCommand": "DATABASE_URL=pglite:memory:// AUTH_DISABLED=true NITRO_PRESET=vercel AGENT_NATIVE_VERCEL_CRON_SCHEDULE=\"0 9 * * *\" pnpm build && node scripts/postbuild-vercel.js",
+  "installCommand": "pnpm install",
+  "framework": null
 }

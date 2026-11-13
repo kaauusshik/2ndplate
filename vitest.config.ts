@@ -4,6 +4,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
+    extensions: [".ts", ".tsx", ".js", ".jsx", ".json", ".mjs"],
     alias: {
       "@": path.resolve(__dirname, "./app"),
       "@shared": path.resolve(__dirname, "./shared"),
