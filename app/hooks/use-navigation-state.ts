@@ -10,6 +10,7 @@ export interface NavigationState {
   view?: string;
   path?: string;
   publicPath?: string;
+  threadId?: string;
 }
 
 export function useNavigationState() {
@@ -25,7 +26,29 @@ export function useNavigationState() {
   });
 }
 
+export function pathForCommand(command: { view?: string; threadId?: string }): string {
+  if (command.view === "home") return "/home";
+  if (command.view === "chat" || command.view === "ask") {
+    return command.threadId ? `/chat/${command.threadId}` : "/chat";
+  }
+  return "/";
+}
+
+export function navigationStateForPath(path: string): NavigationState & { threadId?: string } {
+  const isChat = path.startsWith("/chat/");
+  const threadId = isChat ? path.slice("/chat/".length) : undefined;
+  return {
+    view: isChat ? "chat" : "home",
+    path,
+    publicPath: appPathFromLocalRoute(path),
+    ...(threadId ? { threadId } : {}),
+  };
+}
+
 export function commandPathForNavigation(command: NavigationState): string {
+  if (command?.view === "chat" && command.threadId && !command.path) {
+    return `/chat/${command.threadId}`;
+  }
   const fallbackPath = pathForView(command?.view);
   const path = typeof command?.path === "string" ? command.path : "";
   if (!path) return fallbackPath;
@@ -36,6 +59,12 @@ export function commandPathForNavigation(command: NavigationState): string {
   const suffixIndex = path.search(/[?#]/);
   const pathname = suffixIndex === -1 ? path : path.slice(0, suffixIndex);
   const suffix = suffixIndex === -1 ? "" : path.slice(suffixIndex);
+
+  // If path is duplicated under base like "/chat/chat/thread-one" or "/chat/settings/app"
+  if (pathname.startsWith(`${basePath}/chat/`) || pathname.startsWith(`${basePath}/settings/`)) {
+    return `${pathname.slice(basePath.length)}${suffix}`;
+  }
+
   const publicPath =
     typeof command?.publicPath === "string" ? command.publicPath : "";
   const publicPathSuffixIndex = publicPath.search(/[?#]/);

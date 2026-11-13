@@ -11,8 +11,34 @@ import {
 
 describe("chat home handoff thread", () => {
   beforeEach(() => {
-    window.sessionStorage.clear();
-    window.localStorage.clear();
+    const createStorage = () => {
+      let store: Record<string, string> = {};
+      return {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: (k: string, v: string) => {
+          store[k] = String(v);
+        },
+        removeItem: (k: string) => {
+          delete store[k];
+        },
+        clear: () => {
+          store = {};
+        },
+      } as Storage;
+    };
+
+    Object.defineProperty(window, "localStorage", {
+      value: createStorage(),
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, "sessionStorage", {
+      value: createStorage(),
+      writable: true,
+      configurable: true,
+    });
+
+    clearChatHomeThreadId();
   });
 
   it("reuses a pending id while the home route is being handed off", () => {
