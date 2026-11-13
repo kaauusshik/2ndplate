@@ -1,7 +1,7 @@
 import { defineAction, fail } from "@agent-native/core/action";
 import { z } from "zod";
 
-import { getDb, schema } from "../server/db.js";
+import { inMemoryStore, type InMemoryListing } from "../server/in-memory-db.js";
 
 const isoDate = z
   .string()
@@ -42,35 +42,32 @@ export default defineAction({
       });
     }
 
-    const db = getDb();
-    const [row] = await db
-      .insert(schema.foodListings)
-      .values({
-        id: crypto.randomUUID(),
-        isDemo: false,
-        providerName: input.providerName.trim(),
-        providerType: input.providerType,
-        title: input.title.trim(),
-        category: input.category,
-        isVegetarian: input.isVegetarian,
-        description: input.description.trim(),
-        portionsTotal: input.portions,
-        portionsRemaining: input.portions,
-        weightKg: input.weightKg ?? null,
-        preparedAt: new Date(input.preparedAt).toISOString(),
-        collectBy: new Date(input.collectBy).toISOString(),
-        storageInfo: input.storageInfo.trim(),
-        temperatureInfo: input.temperatureInfo.trim(),
-        allergens: input.allergens.trim(),
-        pickupAddress: input.pickupAddress.trim(),
-        latitude: input.latitude,
-        longitude: input.longitude,
-        contactPhone: input.contactPhone.trim(),
-        status: "AVAILABLE",
-        createdAt: now.toISOString(),
-        updatedAt: now.toISOString(),
-      })
-      .returning();
-    return row;
+    const listing: InMemoryListing = {
+      id: crypto.randomUUID(),
+      isDemo: false,
+      providerName: input.providerName.trim(),
+      providerType: input.providerType,
+      title: input.title.trim(),
+      category: input.category,
+      isVegetarian: input.isVegetarian,
+      description: input.description.trim(),
+      portionsTotal: input.portions,
+      portionsRemaining: input.portions,
+      weightKg: input.weightKg ?? null,
+      preparedAt: new Date(input.preparedAt).toISOString(),
+      collectBy: new Date(input.collectBy).toISOString(),
+      storageInfo: input.storageInfo.trim(),
+      temperatureInfo: input.temperatureInfo.trim(),
+      allergens: input.allergens.trim(),
+      pickupAddress: input.pickupAddress.trim(),
+      latitude: input.latitude,
+      longitude: input.longitude,
+      contactPhone: input.contactPhone.trim(),
+      status: "AVAILABLE",
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    return inMemoryStore.addListing(listing);
   },
 });

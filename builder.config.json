@@ -1,9 +1,4 @@
 {
-  "database": {
-    "kind": "postgres",
-    "migrations": "drizzle",
-    "schemaDir": "drizzle"
-  },
   "hosting": {
     "buildCommand": "NITRO_PRESET=vercel pnpm run build",
     "buildOutputDir": ".vercel/output",

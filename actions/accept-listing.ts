@@ -1,8 +1,7 @@
 import { defineAction, fail } from "@agent-native/core/action";
-import { and, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, schema } from "../server/db.js";
+import { inMemoryStore, type InMemoryDonation } from "../server/in-memory-db.js";
 
 export default defineAction({
   description:
@@ -14,66 +13,48 @@ export default defineAction({
     portions: z.number().int().min(1).max(10000),
   }),
   run: async ({ listingId, ngoName, deliveryAddress, portions }) => {
-    const db = getDb();
-    return db.transaction(async (tx) => {
-      const [listing] = await tx
-        .select()
-        .from(schema.foodListings)
-        .where(eq(schema.foodListings.id, listingId));
-      if (!listing) fail("Listing not found.", { statusCode: 404 });
-      if (listing.status !== "AVAILABLE") {
-        fail("This listing is no longer available.", { statusCode: 409 });
-      }
-      const now = new Date();
-      if (Date.parse(listing.collectBy) <= now.getTime()) {
-        fail("The declared collection deadline has passed.", {
-          statusCode: 409,
-        });
-      }
-      if (portions > listing.portionsRemaining) {
-        fail(`Only ${listing.portionsRemaining} portions remain.`, {
-          statusCode: 409,
-        });
-      }
+    const listing = inMemoryStore.getListing(listingId);
+    if (!listing) fail("Listing not found.", { statusCode: 404 });
+    if (listing.status !== "AVAILABLE") {
+      fail("This listing is no longer available.", { statusCode: 409 });
+    }
+    const now = new Date();
+    if (Date.parse(listing.collectBy) <= now.getTime()) {
+      fail("The declared collection deadline has passed.", {
+        statusCode: 409,
+      });
+    }
+    if (portions > listing.portionsRemaining) {
+      fail(`Only ${listing.portionsRemaining} portions remain.`, {
+        statusCode: 409,
+      });
+    }
 
-      const remainingAfter = listing.portionsRemaining - portions;
-      const [updated] = await tx
-        .update(schema.foodListings)
-        .set({
-          portionsRemaining: sql`${schema.foodListings.portionsRemaining} - ${portions}`,
-          status: remainingAfter === 0 ? "ACCEPTED" : "AVAILABLE",
-          updatedAt: now.toISOString(),
-        })
-        .where(
-          and(
-            eq(schema.foodListings.id, listingId),
-            eq(schema.foodListings.status, "AVAILABLE"),
-            gte(schema.foodListings.portionsRemaining, portions),
-          ),
-        )
-        .returning();
-      if (!updated) {
-        fail("Another NGO just reserved these portions. Please refresh.", {
-          statusCode: 409,
-        });
-      }
-
-      const [donation] = await tx
-        .insert(schema.donations)
-        .values({
-          id: crypto.randomUUID(),
-          isDemo: listing.isDemo,
-          listingId,
-          ngoName: ngoName.trim(),
-          deliveryAddress: deliveryAddress.trim(),
-          portions,
-          status: "ACCEPTED",
-          acceptedAt: now.toISOString(),
-          createdAt: now.toISOString(),
-          updatedAt: now.toISOString(),
-        })
-        .returning();
-      return { donation, listing: updated };
+    const remainingAfter = listing.portionsRemaining - portions;
+    const updated = inMemoryStore.updateListing(listingId, {
+      portionsRemaining: remainingAfter,
+      status: remainingAfter === 0 ? "ACCEPTED" : "AVAILABLE",
     });
+
+    const donation: InMemoryDonation = {
+      id: crypto.randomUUID(),
+      isDemo: listing.isDemo,
+      listingId,
+      ngoName: ngoName.trim(),
+      deliveryAddress: deliveryAddress.trim(),
+      portions,
+      status: "ACCEPTED",
+      volunteerName: null,
+      acceptedAt: now.toISOString(),
+      assignedAt: null,
+      pickedUpAt: null,
+      deliveredAt: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    inMemoryStore.addDonation(donation);
+
+    return { donation, listing: updated };
   },
 });

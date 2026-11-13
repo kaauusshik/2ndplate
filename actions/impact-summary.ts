@@ -1,8 +1,7 @@
 import { defineAction } from "@agent-native/core/action";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, schema } from "../server/db.js";
+import { inMemoryStore } from "../server/in-memory-db.js";
 
 type Totals = {
   portions: number;
@@ -28,22 +27,9 @@ export default defineAction({
   schema: z.object({}),
   http: { method: "GET" },
   run: async () => {
-    const db = getDb();
-    const delivered = await db
-      .select({ donation: schema.donations, listing: schema.foodListings })
-      .from(schema.donations)
-      .innerJoin(
-        schema.foodListings,
-        eq(schema.donations.listingId, schema.foodListings.id),
-      )
-      .where(eq(schema.donations.status, "DELIVERED"));
-
-    const providers = await db
-      .select({
-        name: schema.foodListings.providerName,
-        isDemo: schema.foodListings.isDemo,
-      })
-      .from(schema.foodListings);
+    const all = inMemoryStore.getDonations();
+    const delivered = all.filter((r) => r.donation.status === "DELIVERED");
+    const providers = inMemoryStore.getListings();
 
     const totals = { real: emptyTotals(), demo: emptyTotals() };
     const ngos = { real: new Set<string>(), demo: new Set<string>() };
@@ -69,7 +55,7 @@ export default defineAction({
     }
 
     for (const provider of providers) {
-      providerSets[provider.isDemo ? "demo" : "real"].add(provider.name);
+      providerSets[provider.isDemo ? "demo" : "real"].add(provider.providerName);
     }
 
     totals.real.ngosReceiving = ngos.real.size;

@@ -10,6 +10,11 @@ import {
 
 loadEnv();
 
+if (!process.env.DATABASE_URL && !process.env.DATABASE_URL_UNPOOLED) {
+  console.log("No DATABASE_URL set; skipping database migrations (running in in-memory mode).");
+  process.exit(0);
+}
+
 async function main(): Promise<void> {
   await withMigrationRuntime(async () => {
     await runFrameworkReleaseMigrations(null);

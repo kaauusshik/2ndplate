@@ -1,8 +1,7 @@
 import { defineAction } from "@agent-native/core/action";
-import { asc } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, schema } from "../server/db.js";
+import { inMemoryStore } from "../server/in-memory-db.js";
 
 export default defineAction({
   description:
@@ -10,10 +9,8 @@ export default defineAction({
   schema: z.object({}),
   http: { method: "GET" },
   run: async () => {
-    const db = getDb();
-    return db
-      .select()
-      .from(schema.foodListings)
-      .orderBy(asc(schema.foodListings.collectBy));
+    return inMemoryStore
+      .getListings()
+      .sort((a, b) => Date.parse(a.collectBy) - Date.parse(b.collectBy));
   },
 });

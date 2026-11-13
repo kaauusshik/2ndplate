@@ -1,8 +1,7 @@
 import { defineAction } from "@agent-native/core/action";
-import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, schema } from "../server/db.js";
+import { inMemoryStore } from "../server/in-memory-db.js";
 
 export default defineAction({
   description:
@@ -10,14 +9,8 @@ export default defineAction({
   schema: z.object({}),
   http: { method: "GET" },
   run: async () => {
-    const db = getDb();
-    return db
-      .select({ donation: schema.donations, listing: schema.foodListings })
-      .from(schema.donations)
-      .innerJoin(
-        schema.foodListings,
-        eq(schema.donations.listingId, schema.foodListings.id),
-      )
-      .orderBy(desc(schema.donations.acceptedAt));
+    return inMemoryStore
+      .getDonations()
+      .sort((a, b) => Date.parse(b.donation.acceptedAt) - Date.parse(a.donation.acceptedAt));
   },
 });

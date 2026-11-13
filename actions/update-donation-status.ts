@@ -1,8 +1,7 @@
 import { defineAction, fail } from "@agent-native/core/action";
-import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, schema } from "../server/db.js";
+import { inMemoryStore } from "../server/in-memory-db.js";
 
 const transitions = {
   assign: { from: "ACCEPTED", to: "VOLUNTEER_ASSIGNED" },
@@ -27,62 +26,43 @@ export default defineAction({
     }
     const transition = transitions[step];
     const now = new Date().toISOString();
-    const db = getDb();
 
-    return db.transaction(async (tx) => {
-      const [current] = await tx
-        .select()
-        .from(schema.donations)
-        .where(eq(schema.donations.id, donationId));
-      if (!current) fail("Donation not found.", { statusCode: 404 });
-      if (current.status !== transition.from) {
-        fail(`This donation is ${current.status}, so it cannot be ${step}d.`, {
-          statusCode: 409,
-        });
-      }
+    const current = inMemoryStore.getDonation(donationId);
+    if (!current) fail("Donation not found.", { statusCode: 404 });
+    if (current.status !== transition.from) {
+      fail(`This donation is ${current.status}, so it cannot be ${step}d.`, {
+        statusCode: 409,
+      });
+    }
 
-      const [donation] = await tx
-        .update(schema.donations)
-        .set({
-          status: transition.to,
-          ...(step === "assign" ? { volunteerName, assignedAt: now } : {}),
-          ...(step === "pickup" ? { pickedUpAt: now } : {}),
-          ...(step === "deliver" ? { deliveredAt: now } : {}),
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.donations.id, donationId),
-            eq(schema.donations.status, transition.from),
-          ),
-        )
-        .returning();
-      if (!donation) {
-        fail("This donation was changed by someone else. Please refresh.", {
-          statusCode: 409,
-        });
-      }
+    const updates: Record<string, any> = {
+      status: transition.to,
+    };
+    if (step === "assign" && volunteerName) {
+      updates.volunteerName = volunteerName;
+      updates.assignedAt = now;
+    } else if (step === "pickup") {
+      updates.pickedUpAt = now;
+    } else if (step === "deliver") {
+      updates.deliveredAt = now;
+    }
 
+    const donation = inMemoryStore.updateDonation(donationId, updates);
+
+    const listing = inMemoryStore.getListing(current.listingId);
+    if (listing) {
       if (step === "cancel") {
-        await tx
-          .update(schema.foodListings)
-          .set({
-            portionsRemaining: sql`${schema.foodListings.portionsRemaining} + ${current.portions}`,
-            status: "AVAILABLE",
-            updatedAt: now,
-          })
-          .where(eq(schema.foodListings.id, current.listingId));
+        inMemoryStore.updateListing(listing.id, {
+          portionsRemaining: listing.portionsRemaining + current.portions,
+          status: "AVAILABLE",
+        });
       } else if (step === "pickup" || step === "deliver") {
-        await tx
-          .update(schema.foodListings)
-          .set({
-            status: step === "pickup" ? "PICKED_UP" : "DELIVERED",
-            updatedAt: now,
-          })
-          .where(eq(schema.foodListings.id, current.listingId));
+        inMemoryStore.updateListing(listing.id, {
+          status: step === "pickup" ? "PICKED_UP" : "DELIVERED",
+        });
       }
+    }
 
-      return donation;
-    });
+    return donation;
   },
 });
