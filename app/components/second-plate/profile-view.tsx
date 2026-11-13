@@ -34,7 +34,8 @@ const ROLE_ICONS: Record<Role, Icon> = {
 };
 
 export function ProfileView() {
-  const [role, setRole] = useDemoRole();
+  const [rawRole, setRole] = useDemoRole();
+  const role: Role = rawRole === "ngo" || rawRole === "volunteer" ? rawRole : "provider";
   const listings = useActionQuery("list-listings", {});
   const donations = useActionQuery("list-donations", {});
 
@@ -47,7 +48,7 @@ export function ProfileView() {
 
   const allListings = (listings.data ?? []) as Listing[];
   const rows = (donations.data ?? []) as DonationRow[];
-  const RoleIcon = ROLE_ICONS[role];
+  const RoleIcon = ROLE_ICONS[role] ?? ROLE_ICONS.provider;
 
   const name =
     role === "provider"

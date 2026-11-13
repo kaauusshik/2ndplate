@@ -57,11 +57,12 @@ const ROLE_ICONS: Record<Role, typeof IconBuilding> = {
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const [role, setRole] = useDemoRole();
+  const [rawRole, setRole] = useDemoRole();
+  const role: Role = rawRole === "ngo" || rawRole === "volunteer" ? rawRole : "provider";
   const navigate = useNavigate();
   const location = useLocation();
   const here = `${location.pathname}${location.search}`;
-  const items = NAV[role];
+  const items = NAV[role] ?? NAV.provider;
 
   const switchRole = (next: Role) => {
     setRole(next);

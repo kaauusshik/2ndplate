@@ -5,16 +5,16 @@
     "schemaDir": "drizzle"
   },
   "hosting": {
-    "buildCommand": "pnpm run build",
-    "buildOutputDir": "dist",
+    "buildCommand": "NITRO_PRESET=vercel pnpm run build",
+    "buildOutputDir": ".vercel/output",
     "nodeVersion": "22",
     "environment": {
       "build": {
-        "NITRO_PRESET": "netlify"
+        "NITRO_PRESET": "vercel"
       },
       "prod": {
         "NODE_ENV": "production",
-        "DISABLE_AUTH": true
+        "AUTH_DISABLED": "true"
       }
     }
   }

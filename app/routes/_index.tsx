@@ -4,7 +4,7 @@ import { AppShell } from "@/components/second-plate/app-shell";
 import { NgoView } from "@/components/second-plate/ngo-view";
 import { ProviderView } from "@/components/second-plate/provider-view";
 import { VolunteerView } from "@/components/second-plate/volunteer-view";
-import { useDemoRole } from "@/lib/second-plate";
+import { useDemoRole, type Role } from "@/lib/second-plate";
 
 export function meta() {
   return [
@@ -17,15 +17,20 @@ export function meta() {
 }
 
 export default function HomeRoute() {
-  const [role] = useDemoRole();
+  const [rawRole] = useDemoRole();
+  const role: Role = rawRole === "ngo" || rawRole === "volunteer" ? rawRole : "provider";
   const [params] = useSearchParams();
   const tab = params.get("tab") ?? "";
 
   return (
     <AppShell>
-      {role === "provider" ? <ProviderView tab={tab} /> : null}
-      {role === "ngo" ? <NgoView tab={tab} /> : null}
-      {role === "volunteer" ? <VolunteerView tab={tab} /> : null}
+      {role === "ngo" ? (
+        <NgoView tab={tab} />
+      ) : role === "volunteer" ? (
+        <VolunteerView tab={tab} />
+      ) : (
+        <ProviderView tab={tab} />
+      )}
     </AppShell>
   );
 }

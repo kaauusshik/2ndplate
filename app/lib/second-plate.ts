@@ -148,8 +148,9 @@ export function toLocalInputValue(date: Date) {
 }
 
 export function useNow(intervalMs = 30_000) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => (typeof Date !== "undefined" ? Date.now() : 0));
   useEffect(() => {
+    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), intervalMs);
     return () => window.clearInterval(id);
   }, [intervalMs]);
@@ -167,8 +168,13 @@ function subscribeRole(callback: () => void) {
 }
 
 function readRole(): Role {
-  const value = window.localStorage.getItem(ROLE_KEY);
-  return value === "ngo" || value === "volunteer" ? value : "provider";
+  if (typeof window === "undefined") return "provider";
+  try {
+    const value = window.localStorage?.getItem(ROLE_KEY);
+    return value === "ngo" || value === "volunteer" ? value : "provider";
+  } catch {
+    return "provider";
+  }
 }
 
 export function useDemoRole() {
@@ -178,7 +184,13 @@ export function useDemoRole() {
     () => "provider" as Role,
   );
   const setRole = useCallback((next: Role) => {
-    window.localStorage.setItem(ROLE_KEY, next);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage?.setItem(ROLE_KEY, next);
+      }
+    } catch {
+      // ignore
+    }
     roleListeners.forEach((listener) => listener());
   }, []);
   return [role, setRole] as const;
