@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useActionMutation } from "@agent-native/core/client/hooks";
 import {
   IconFlame,
   IconSparkles,
@@ -7,21 +6,19 @@ import {
   IconBolt,
   IconCheck,
 } from "@tabler/icons-react";
+import { useSecondPlateActions } from "@/lib/second-plate";
 
 export function LiveTicker() {
-  const seed = useActionMutation("seed-demo-data");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
   const [seededNotice, setSeededNotice] = useState(false);
 
   const handleSeed = () => {
-    seed.mutate(
-      { mode: "append" },
-      {
-        onSuccess: () => {
-          setSeededNotice(true);
-          setTimeout(() => setSeededNotice(false), 4000);
-        },
-      },
-    );
+    setIsPending(true);
+    actions.seedDemoData("append");
+    setIsPending(false);
+    setSeededNotice(true);
+    setTimeout(() => setSeededNotice(false), 4000);
   };
 
   return (
@@ -52,17 +49,17 @@ export function LiveTicker() {
         ) : (
           <button
             type="button"
-            disabled={seed.isPending}
+            disabled={isPending}
             onClick={handleSeed}
             title="Populate fresh demo listings, pickups, and completed rescues"
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-card px-3 py-1 text-xs font-medium text-primary shadow-2xs transition-all hover:bg-primary hover:text-primary-foreground hover:scale-102 active:scale-98 disabled:opacity-50"
           >
-            {seed.isPending ? (
+            {isPending ? (
               <IconRefresh size={13} className="animate-spin" />
             ) : (
               <IconSparkles size={13} className="text-amber-500" />
             )}
-            <span>{seed.isPending ? "Seeding..." : "✨ Load Fresh Demo Data"}</span>
+            <span>{isPending ? "Seeding..." : "✨ Load Fresh Demo Data"}</span>
           </button>
         )}
       </div>

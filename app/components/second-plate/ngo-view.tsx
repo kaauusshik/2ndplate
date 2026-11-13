@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useActionMutation, useActionQuery } from "@agent-native/core/client/hooks";
 import {
   IconSearch,
   IconFilter,
@@ -33,6 +32,9 @@ import {
   distanceKm,
   isOpenForAcceptance,
   useNow,
+  useListingsData,
+  useDonationsData,
+  useSecondPlateActions,
 } from "@/lib/second-plate";
 import { cn } from "@/lib/utils";
 import {
@@ -63,8 +65,8 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 export function NgoView({ tab }: { tab: string }) {
-  const listings = useActionQuery("list-listings", {});
-  const donations = useActionQuery("list-donations", {});
+  const listings = useListingsData();
+  const donations = useDonationsData();
 
   if (tab === "mine") {
     if (donations.isLoading) return <LoadingState label="Loading claims…" />;
@@ -269,7 +271,25 @@ function AcceptButton({ listing }: { listing: Listing }) {
   const [open, setOpen] = useState(false);
   const [portions, setPortions] = useState(listing.portionsRemaining);
   const [confirmed, setConfirmed] = useState(false);
-  const accept = useActionMutation("accept-listing");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const accept = {
+    isPending,
+    error,
+    mutate: (params: { listingId: string; ngoName: string; deliveryAddress: string; portions: number }, opts?: { onSuccess?: () => void; onError?: (err: unknown) => void }) => {
+      try {
+        setIsPending(true);
+        actions.acceptListing(params);
+        setIsPending(false);
+        opts?.onSuccess?.();
+      } catch (err) {
+        setIsPending(false);
+        setError(err);
+        opts?.onError?.(err);
+      }
+    },
+  };
 
   const valid =
     Number.isInteger(portions) &&
@@ -524,7 +544,25 @@ function Group({
 
 function CancelAcceptance({ donationId }: { donationId: string }) {
   const [open, setOpen] = useState(false);
-  const update = useActionMutation("update-donation-status");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const update = {
+    isPending,
+    error,
+    mutate: (params: { donationId: string; step?: "assign" | "pickup" | "deliver" | "cancel"; status?: string }, opts?: { onSuccess?: () => void; onError?: (err: unknown) => void }) => {
+      try {
+        setIsPending(true);
+        actions.updateDonationStatus(params);
+        setIsPending(false);
+        opts?.onSuccess?.();
+      } catch (err) {
+        setIsPending(false);
+        setError(err);
+        opts?.onError?.(err);
+      }
+    },
+  };
   return (
     <>
       <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive" onClick={() => setOpen(true)}>

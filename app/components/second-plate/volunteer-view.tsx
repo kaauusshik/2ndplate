@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useActionMutation, useActionQuery } from "@agent-native/core/client/hooks";
 import {
   IconTruck,
   IconMapPin,
@@ -31,6 +30,8 @@ import {
   SAFETY_CHECKLIST,
   distanceKm,
   formatDateTime,
+  useDonationsData,
+  useSecondPlateActions,
 } from "@/lib/second-plate";
 import { cn } from "@/lib/utils";
 import {
@@ -50,7 +51,7 @@ const BADGES = [
 ];
 
 export function VolunteerView({ tab }: { tab: string }) {
-  const donations = useActionQuery("list-donations", {});
+  const donations = useDonationsData();
 
   if (donations.isLoading) return <LoadingState label="Fetching live rescue tasks…" />;
   if (donations.error) return <ErrorState message={errorMessage(donations.error)} />;
@@ -288,7 +289,18 @@ function TaskCard({ row }: { row: DonationRow }) {
 }
 
 function AssignButton({ donationId }: { donationId: string }) {
-  const update = useActionMutation("update-donation-status");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const update = {
+    isPending,
+    error: null,
+    mutate: (params: { donationId: string; step?: "assign" | "pickup" | "deliver" | "cancel"; volunteerName?: string }, opts?: { onSuccess?: () => void }) => {
+      setIsPending(true);
+      actions.updateDonationStatus(params);
+      setIsPending(false);
+      opts?.onSuccess?.();
+    },
+  };
   return (
     <Button
       size="sm"
@@ -311,7 +323,18 @@ function AssignButton({ donationId }: { donationId: string }) {
 function PickupButton({ donationId }: { donationId: string }) {
   const [open, setOpen] = useState(false);
   const [checkedAll, setCheckedAll] = useState(false);
-  const update = useActionMutation("update-donation-status");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const update = {
+    isPending,
+    error: null,
+    mutate: (params: { donationId: string; step?: "assign" | "pickup" | "deliver" | "cancel"; volunteerName?: string }, opts?: { onSuccess?: () => void }) => {
+      setIsPending(true);
+      actions.updateDonationStatus(params);
+      setIsPending(false);
+      opts?.onSuccess?.();
+    },
+  };
 
   return (
     <>
@@ -385,7 +408,18 @@ function PickupButton({ donationId }: { donationId: string }) {
 
 function DeliverButton({ donationId }: { donationId: string }) {
   const [open, setOpen] = useState(false);
-  const update = useActionMutation("update-donation-status");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const update = {
+    isPending,
+    error: null,
+    mutate: (params: { donationId: string; step?: "assign" | "pickup" | "deliver" | "cancel"; volunteerName?: string }, opts?: { onSuccess?: () => void }) => {
+      setIsPending(true);
+      actions.updateDonationStatus(params);
+      setIsPending(false);
+      opts?.onSuccess?.();
+    },
+  };
 
   return (
     <>

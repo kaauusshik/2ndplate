@@ -1,4 +1,3 @@
-import { useActionQuery } from "@agent-native/core/client/hooks";
 import {
   IconLeaf,
   IconDroplet,
@@ -10,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 
 import { AppShell } from "@/components/second-plate/app-shell";
+import { useImpactData } from "@/lib/second-plate";
 import {
   EmptyState,
   ErrorState,
@@ -40,7 +40,7 @@ type Impact = {
 };
 
 export default function ImpactRoute() {
-  const impact = useActionQuery("impact-summary", {});
+  const impact = useImpactData();
 
   return (
     <AppShell>

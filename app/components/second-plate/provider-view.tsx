@@ -1,6 +1,5 @@
 import { useState, useMemo, type ReactNode } from "react";
 import { Link } from "react-router";
-import { useActionMutation, useActionQuery } from "@agent-native/core/client/hooks";
 import {
   IconCircleCheck,
   IconHeartHandshake,
@@ -39,6 +38,9 @@ import {
   DONATION_STATUS_LABELS,
   formatDateTime,
   useNow,
+  useListingsData,
+  useDonationsData,
+  useSecondPlateActions,
 } from "@/lib/second-plate";
 import { cn } from "@/lib/utils";
 import {
@@ -53,8 +55,8 @@ import {
 } from "./primitives";
 
 export function ProviderView({ tab }: { tab: string }) {
-  const listings = useActionQuery("list-listings", {});
-  const donations = useActionQuery("list-donations", {});
+  const listings = useListingsData();
+  const donations = useDonationsData();
   const [filterTab, setFilterTab] = useState<"all" | "active" | "completed">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -575,7 +577,25 @@ function EnhancedProviderCard({ listing }: { listing: Listing }) {
 
 function CancelListingButton({ listing }: { listing: Listing }) {
   const [open, setOpen] = useState(false);
-  const cancel = useActionMutation("cancel-listing");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const cancel = {
+    isPending,
+    error,
+    mutate: (params: { id: string }, opts?: { onSuccess?: () => void; onError?: (err: unknown) => void }) => {
+      try {
+        setIsPending(true);
+        actions.cancelListing(params.id);
+        setIsPending(false);
+        opts?.onSuccess?.();
+      } catch (err) {
+        setIsPending(false);
+        setError(err);
+        opts?.onError?.(err);
+      }
+    },
+  };
   const cancellable =
     listing.status === "AVAILABLE" &&
     listing.portionsRemaining === listing.portionsTotal;

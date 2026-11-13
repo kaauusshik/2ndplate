@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { useActionQuery } from "@agent-native/core/client/hooks";
 import {
   IconBuildingStore,
   IconHeartHandshake,
@@ -22,6 +21,8 @@ import {
   type Listing,
   type Role,
   useDemoRole,
+  useListingsData,
+  useDonationsData,
 } from "@/lib/second-plate";
 import { ErrorState, LoadingState, errorMessage } from "./primitives";
 
@@ -36,8 +37,8 @@ const ROLE_ICONS: Record<Role, Icon> = {
 export function ProfileView() {
   const [rawRole, setRole] = useDemoRole();
   const role: Role = rawRole === "ngo" || rawRole === "volunteer" ? rawRole : "provider";
-  const listings = useActionQuery("list-listings", {});
-  const donations = useActionQuery("list-donations", {});
+  const listings = useListingsData();
+  const donations = useDonationsData();
 
   if (listings.isLoading || donations.isLoading) {
     return <LoadingState label="Loading profile information…" />;

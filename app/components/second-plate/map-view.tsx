@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useActionQuery } from "@agent-native/core/client/hooks";
 import {
   IconMapPin,
   IconCompass,
@@ -16,6 +15,8 @@ import {
   type Listing,
   distanceKm,
   useDemoRole,
+  useListingsData,
+  useDonationsData,
 } from "@/lib/second-plate";
 import {
   DeadlineText,
@@ -41,8 +42,8 @@ const PAD = 64;
 
 export function MapView() {
   const [role] = useDemoRole();
-  const listings = useActionQuery("list-listings", {});
-  const donations = useActionQuery("list-donations", {});
+  const listings = useListingsData();
+  const donations = useDonationsData();
   const [selected, setSelected] = useState<string | null>(null);
   const isVolunteer = role === "volunteer";
 

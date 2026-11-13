@@ -1,6 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { useActionMutation } from "@agent-native/core/client/hooks";
 import {
   IconSparkles,
   IconCheck,
@@ -23,6 +22,7 @@ import {
   PROVIDER_TYPE_LABELS,
   SAFETY_CHECKLIST,
   toLocalInputValue,
+  useSecondPlateActions,
 } from "@/lib/second-plate";
 import { ErrorState, errorMessage } from "./primitives";
 
@@ -164,7 +164,30 @@ const selectClass =
 
 export function AddFoodForm() {
   const navigate = useNavigate();
-  const create = useActionMutation("create-listing");
+  const actions = useSecondPlateActions();
+  const [isPending, setIsPending] = useState(false);
+  const [createError, setCreateError] = useState<unknown>(null);
+  const create = {
+    isPending,
+    error: createError,
+    mutate: (params: any, opts?: { onSuccess?: () => void }) => {
+      try {
+        setIsPending(true);
+        actions.createListing({
+          ...params,
+          portionsTotal: params.portions,
+          portionsRemaining: params.portions,
+          weightKg: params.weightKg ?? null,
+          status: "AVAILABLE",
+        });
+        setIsPending(false);
+        opts?.onSuccess?.();
+      } catch (err) {
+        setIsPending(false);
+        setCreateError(err);
+      }
+    },
+  };
   const [form, setForm] = useState<FormState>(initialState);
   const [checklist, setChecklist] = useState(true);
   const [problem, setProblem] = useState<string | null>(null);
