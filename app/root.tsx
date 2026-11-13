@@ -66,6 +66,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function DbSyncSetup() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return <ClientDbSyncSetup />;
+}
+
+function ClientDbSyncSetup() {
   const qc = useQueryClient();
   useNavigationState();
   useDbSync({
