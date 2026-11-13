@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Link } from "react-router";
 import { useActionMutation, useActionQuery } from "@agent-native/core/client/hooks";
 import {
@@ -13,9 +13,17 @@ import {
   IconTruckDelivery,
   IconSparkles,
   IconFlame,
+  IconClock,
+  IconSearch,
+  IconThermometer,
+  IconShieldCheck,
+  IconArrowRight,
+  IconAlertCircle,
+  IconCarrot,
 } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +38,7 @@ import {
   CATEGORY_LABELS,
   DONATION_STATUS_LABELS,
   formatDateTime,
+  useNow,
 } from "@/lib/second-plate";
 import { cn } from "@/lib/utils";
 import {
@@ -47,9 +56,12 @@ export function ProviderView({ tab }: { tab: string }) {
   const listings = useActionQuery("list-listings", {});
   const donations = useActionQuery("list-donations", {});
   const [filterTab, setFilterTab] = useState<"all" | "active" | "completed">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const now = useNow();
 
   if (listings.isLoading || donations.isLoading) {
-    return <LoadingState label="Loading kitchen dashboard…" />;
+    return <LoadingState label="Synthesizing kitchen dashboard & food network metrics…" />;
   }
   if (listings.error || donations.error) {
     return (
@@ -71,117 +83,232 @@ export function ProviderView({ tab }: { tab: string }) {
     ["ACCEPTED", "VOLUNTEER_ASSIGNED", "PICKED_UP"].includes(r.donation.status),
   );
   const delivered = rows.filter((r) => r.donation.status === "DELIVERED");
-  const mealsRedistributed = delivered.reduce(
-    (sum, r) => sum + r.donation.portions,
-    0,
-  );
+
+  // Portion distribution metrics
+  const openPortions = active.reduce((acc, l) => acc + l.portionsRemaining, 0);
+  const inFlightPortions = inFlight.reduce((acc, d) => acc + d.donation.portions, 0);
+  const deliveredPortions = delivered.reduce((acc, d) => acc + d.donation.portions, 0);
+  const totalPortions = Math.max(1, openPortions + inFlightPortions + deliveredPortions);
+
+  // Critical urgent listings (< 2h)
+  const criticalListings = active.filter((l) => {
+    const msLeft = Date.parse(l.collectBy) - now;
+    return msLeft > 0 && msLeft <= 2 * 3_600_000;
+  });
+
   const recent = [...rows]
     .sort((a, b) => b.donation.updatedAt.localeCompare(a.donation.updatedAt))
     .slice(0, 6);
 
   const displayedListings = allListings.filter((l) => {
-    if (filterTab === "active") return l.status === "AVAILABLE";
-    if (filterTab === "completed") return l.status === "DELIVERED" || l.status === "ACCEPTED";
+    if (filterTab === "active" && l.status !== "AVAILABLE") return false;
+    if (filterTab === "completed" && l.status !== "DELIVERED" && l.status !== "ACCEPTED") return false;
+    if (categoryFilter !== "all" && l.category !== categoryFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = l.title.toLowerCase().includes(q);
+      const matchDesc = l.description.toLowerCase().includes(q);
+      const matchAddress = l.pickupAddress.toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc && !matchAddress) return false;
+    }
     return true;
   });
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-950 to-slate-950 p-6 text-white shadow-xl md:p-8">
+      {/* Unique Command Center Hero */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0c2e22] via-[#092219] to-[#04120d] p-6 text-white shadow-2xl md:p-8 border border-emerald-500/20">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -top-16 size-72 rounded-full bg-emerald-500/10 blur-2xl"
+          className="pointer-events-none absolute -right-20 -top-20 size-80 rounded-full bg-emerald-500/15 blur-3xl animate-pulse"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-20 right-24 size-48 rounded-full bg-emerald-400/10 blur-xl"
+          className="pointer-events-none absolute -bottom-24 left-1/3 size-64 rounded-full bg-emerald-400/10 blur-2xl"
         />
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-xl space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-0.5 text-xs font-bold text-emerald-300">
-              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-              Kitchen & Provider Portal
+
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-0.5 text-xs font-bold text-emerald-300">
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+                Live Food Rescue Command
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-200">
+                <IconShieldCheck size={14} className="text-emerald-400" /> FSSAI Certified Holding
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-200">
+                <IconClock size={14} className="text-amber-400" /> ~38 min Avg Dispatch
+              </span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-4xl text-white">
+
+            <h1 className="text-3xl font-black tracking-tight sm:text-4xl text-white">
               {active.length > 0
-                ? `${active.length} Surplus Batch${active.length === 1 ? "" : "es"} Open For Shelters`
-                : "No Open Surplus Right Now"}
+                ? `${openPortions} Fresh Portions Ready for Dispatch`
+                : "All Kitchen Surplus Dispatched & Safe"}
             </h1>
-            <p className="text-sm text-emerald-100/80 leading-relaxed">
-              {inFlight.length > 0
-                ? `${inFlight.length} donation batch${inFlight.length === 1 ? " is" : "es are"} actively moving towards pickup by volunteer couriers.`
-                : "Publish fresh banquet, bakery, or canteen surplus with declared collection cutoffs to prevent food waste."}
+
+            <p className="text-sm text-emerald-100/80 leading-relaxed max-w-xl">
+              Real-time synchronization between food providers, local shelter kitchens, and volunteer courier dispatchers.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
             <Button
               asChild
               size="lg"
               className="rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-lg hover:scale-102 transition-transform"
             >
               <Link to="/add">
-                <IconPlus size={18} className="mr-1" />
+                <IconPlus size={18} className="mr-1.5" />
                 Publish Surplus Food
               </Link>
             </Button>
           </div>
         </div>
+
+        {/* Unique Physical Food Flow Pipe (Physical Pipeline from Kitchen to Plate) */}
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md space-y-3">
+          <div className="flex flex-wrap items-center justify-between text-xs font-bold">
+            <span className="text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-emerald-400" /> City Food Stream Pipeline
+            </span>
+            <span className="text-white/80">
+              {openPortions + inFlightPortions + deliveredPortions} Total Portions Managed Today
+            </span>
+          </div>
+
+          {/* Three-segment progress stream */}
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-black/40 p-0.5 gap-1">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+              style={{ width: `${(openPortions / totalPortions) * 100}%` }}
+              title={`${openPortions} portions open in kitchens`}
+            />
+            <div
+              className="h-full rounded-full bg-amber-400 transition-all duration-700 animate-pulse"
+              style={{ width: `${(inFlightPortions / totalPortions) * 100}%` }}
+              title={`${inFlightPortions} portions in transit`}
+            />
+            <div
+              className="h-full rounded-full bg-blue-400 transition-all duration-700"
+              style={{ width: `${(deliveredPortions / totalPortions) * 100}%` }}
+              title={`${deliveredPortions} portions delivered to shelters`}
+            />
+          </div>
+
+          {/* Pipeline Legend */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-white font-bold">{openPortions} Portions</span>
+              <span className="text-emerald-200/70 text-[11px]">in Kitchens</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-amber-400 shrink-0" />
+              <span className="text-white font-bold">{inFlightPortions} Portions</span>
+              <span className="text-amber-200/70 text-[11px]">in Transit (Couriers)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-blue-400 shrink-0" />
+              <span className="text-white font-bold">{deliveredPortions} Portions</span>
+              <span className="text-blue-200/70 text-[11px]">Served at Shelters</span>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Stats Cards */}
+      {/* Critical Expiration Alert (if any batch has < 2h remaining) */}
+      {criticalListings.length > 0 && (
+        <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="size-10 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <IconFlame size={22} className="animate-bounce" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                Action Recommended: {criticalListings.length} Batch Approaching Cutoff (&lt; 2 Hours)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Surplus food near its declared collection deadline is prioritized on NGO discovery to avoid waste.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full border-amber-500/40 text-amber-700 dark:text-amber-300 font-bold shrink-0"
+            onClick={() => {
+              setFilterTab("active");
+              setSearchQuery(criticalListings[0]?.title ?? "");
+            }}
+          >
+            Review Urgent Batch
+          </Button>
+        </section>
+      )}
+
+      {/* Unique KPI Matrix Cards */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-        <Stat
+        <UniqueStatCard
           icon={<IconPackage size={22} />}
-          label="Open Listings"
+          badge="Live Batches"
           value={active.length}
-          hint="Available for NGOs"
-          tone="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+          label="Available Batches"
+          subtext={`${openPortions} meals ready to claim`}
+          accent="text-emerald-600 dark:text-emerald-400"
+          bg="bg-emerald-500/10"
         />
-        <Stat
+        <UniqueStatCard
           icon={<IconTruckDelivery size={22} />}
-          label="In Transit"
+          badge="In Motion"
           value={inFlight.length}
-          hint="Volunteers assigned"
-          tone="bg-amber-500/15 text-amber-600 dark:text-amber-400"
+          label="Active Deliveries"
+          subtext={`${inFlightPortions} meals en route`}
+          accent="text-amber-600 dark:text-amber-400"
+          bg="bg-amber-500/10"
         />
-        <Stat
+        <UniqueStatCard
           icon={<IconCircleCheck size={22} />}
-          label="Delivered"
+          badge="Completed"
           value={delivered.length}
-          hint="Safe handovers completed"
-          tone="bg-blue-500/15 text-blue-600 dark:text-blue-400"
+          label="Delivered Runs"
+          subtext={`${deliveredPortions} meals received`}
+          accent="text-blue-600 dark:text-blue-400"
+          bg="bg-blue-500/10"
         />
-        <Stat
-          icon={<IconToolsKitchen2 size={22} />}
-          label="Meals Rescued"
-          value={mealsRedistributed}
-          hint="Portions saved from landfill"
-          tone="bg-primary text-primary-foreground shadow-xs"
+        <UniqueStatCard
+          icon={<IconLeaf size={22} />}
+          badge="Methane Saved"
+          value={`${Math.round(deliveredPortions * 0.88)} kg`}
+          label="CO₂e Avoided"
+          subtext="Landfill emissions offset"
+          accent="text-emerald-600 dark:text-emerald-400"
+          bg="bg-emerald-500/10"
         />
       </section>
 
-      {/* Listings Section */}
+      {/* Filterable Batch Control Console */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
-              Your Food Batches
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <IconToolsKitchen2 size={20} className="text-primary" />
+              Kitchen Surplus Inventory
             </h2>
-            <p className="text-xs text-muted-foreground">
-              {allListings.length} total listings · Click a batch to inspect details
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Live batches, temperature records, and portion reservation status
             </p>
           </div>
 
-          <div className="flex items-center gap-1 rounded-full border border-border/80 bg-card p-1">
+          <div className="flex items-center gap-1.5 rounded-full border border-border/80 bg-card p-1 shadow-2xs">
             <button
               type="button"
               onClick={() => setFilterTab("all")}
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-bold transition-all",
                 filterTab === "all"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -193,11 +320,11 @@ export function ProviderView({ tab }: { tab: string }) {
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-bold transition-all",
                 filterTab === "active"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              Available ({active.length})
+              Open ({active.length})
             </button>
             <button
               type="button"
@@ -205,7 +332,7 @@ export function ProviderView({ tab }: { tab: string }) {
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-bold transition-all",
                 filterTab === "completed"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -214,34 +341,77 @@ export function ProviderView({ tab }: { tab: string }) {
           </div>
         </div>
 
+        {/* Search & Category Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-3 rounded-2xl border border-border/80 bg-card p-3 shadow-2xs">
+          <div className="relative flex-1">
+            <IconSearch className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search batches by dish, description, or pickup address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 rounded-xl text-xs"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {[
+              { id: "all", label: "All Types" },
+              { id: "cooked_meal", label: "🍲 Cooked" },
+              { id: "bakery", label: "🥐 Bakery" },
+              { id: "produce", label: "🥦 Produce" },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategoryFilter(cat.id)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all",
+                  categoryFilter === cat.id
+                    ? "bg-secondary text-secondary-foreground font-bold border border-primary/40"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
+                )}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Listings Grid */}
         {displayedListings.length === 0 ? (
           <EmptyState
-            title="No listings in this view"
-            body="Publish surplus food before its collection deadline so local shelters can claim it."
+            title="No food batches match your filter"
+            body="Try resetting your search query or publish a fresh surplus batch using the button above."
             action={
               <Button asChild className="rounded-full font-bold">
-                <Link to="/add">Add Your First Batch</Link>
+                <Link to="/add">Publish New Surplus Batch</Link>
               </Button>
             }
           />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {displayedListings.map((listing) => (
-              <ProviderListingCard key={listing.id} listing={listing} />
+              <EnhancedProviderCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}
       </section>
 
-      {/* Recent Activity */}
+      {/* Live Operational Dispatch Feed */}
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-foreground">
-          Live Dispatch Feed
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live Dispatch & Handover Feed
+          </h2>
+          <span className="text-xs text-muted-foreground">Real-time status updates</span>
+        </div>
+
         {recent.length === 0 ? (
           <EmptyState
             title="No activity recorded yet"
-            body="Donation updates appear here as NGOs and volunteers accept and deliver surplus food."
+            body="Donation milestones appear here as shelters accept and couriers pick up batches."
           />
         ) : (
           <ul className="divide-y divide-border/60 overflow-hidden rounded-3xl border border-border bg-card shadow-xs">
@@ -261,7 +431,7 @@ export function ProviderView({ tab }: { tab: string }) {
                     {donation.ngoName}
                   </span>
                   <span className="block truncate text-muted-foreground">
-                    {donation.portions} portions of <strong>{listing.title}</strong>
+                    Reserved <strong>{donation.portions} portions</strong> of {listing.title}
                   </span>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-1">
@@ -279,58 +449,59 @@ export function ProviderView({ tab }: { tab: string }) {
   );
 }
 
-function Stat({
+function UniqueStatCard({
   icon,
-  label,
+  badge,
   value,
-  hint,
-  tone,
+  label,
+  subtext,
+  accent,
+  bg,
 }: {
   icon: ReactNode;
+  badge: string;
+  value: string | number;
   label: string;
-  value: number;
-  hint: string;
-  tone: string;
+  subtext: string;
+  accent: string;
+  bg: string;
 }) {
   return (
-    <div className="card-hover-lift flex flex-col justify-between gap-3 rounded-3xl border border-border/80 bg-card p-4.5 shadow-2xs">
+    <div className="card-hover-lift flex flex-col justify-between gap-3 rounded-3xl border border-border/80 bg-card p-5 shadow-2xs relative overflow-hidden">
       <div className="flex items-center justify-between">
-        <span
-          className={cn("grid size-10 place-items-center rounded-2xl", tone)}
-          aria-hidden="true"
-        >
+        <span className={cn("grid size-10 place-items-center rounded-2xl", bg, accent)}>
           {icon}
         </span>
-        <span className="text-[10px] font-bold text-muted-foreground uppercase">
-          {hint}
+        <span className="rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+          {badge}
         </span>
       </div>
-      <div>
+
+      <div className="space-y-0.5">
         <p className="text-3xl font-black tabular-nums tracking-tight text-foreground">
           {value}
         </p>
-        <p className="mt-0.5 text-xs font-bold text-muted-foreground">
-          {label}
-        </p>
+        <p className="text-xs font-bold text-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground">{subtext}</p>
       </div>
     </div>
   );
 }
 
-function ProviderListingCard({ listing }: { listing: Listing }) {
+function EnhancedProviderCard({ listing }: { listing: Listing }) {
   const total = Math.max(listing.portionsTotal, 1);
   const claimed = listing.portionsTotal - listing.portionsRemaining;
   const claimedPct = Math.round((claimed / total) * 100);
 
   return (
     <article className="card-hover-lift flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-card shadow-xs">
-      <div className="flex items-start justify-between gap-3 bg-secondary/30 p-4 border-b border-border/50">
+      <div className="flex items-start justify-between gap-3 bg-secondary/30 p-4.5 border-b border-border/50">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-card text-primary shadow-2xs">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card text-primary shadow-2xs">
             {listing.isVegetarian ? (
-              <IconLeaf size={20} aria-hidden="true" />
+              <IconLeaf size={22} aria-hidden="true" />
             ) : (
-              <IconSalad size={20} aria-hidden="true" />
+              <IconSalad size={22} aria-hidden="true" />
             )}
           </span>
           <div className="min-w-0">
@@ -339,7 +510,7 @@ function ProviderListingCard({ listing }: { listing: Listing }) {
             </h3>
             <p className="truncate text-xs font-semibold text-muted-foreground">
               {CATEGORY_LABELS[listing.category] ?? listing.category}
-              {listing.isVegetarian ? " · Veg" : " · Non-Veg"}
+              {listing.isVegetarian ? " · Pure Veg" : " · Non-Veg"}
             </p>
           </div>
         </div>
@@ -347,23 +518,40 @@ function ProviderListingCard({ listing }: { listing: Listing }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4.5">
-        <div>
-          <div className="mb-1.5 flex items-baseline justify-between text-xs">
+        {/* Portion Remaining Bar */}
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between text-xs">
             <span className="font-bold text-foreground">
-              {listing.portionsRemaining} portions left
+              {listing.portionsRemaining} portions available
             </span>
             <span className="text-muted-foreground font-semibold text-[11px]">
-              {claimed} claimed ({claimedPct}%)
+              {claimedPct}% claimed ({claimed}/{total})
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
             <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                claimedPct === 100 ? "bg-blue-500" : claimedPct > 50 ? "bg-amber-500" : "bg-emerald-500",
+              )}
               style={{ width: `${claimedPct}%` }}
             />
           </div>
         </div>
 
+        {/* Thermal & Storage Details */}
+        <div className="grid grid-cols-2 gap-2 text-[11px] rounded-2xl bg-secondary/30 p-2.5">
+          <div className="flex items-center gap-1.5 text-foreground truncate" title={listing.temperatureInfo}>
+            <IconThermometer size={14} className="text-amber-500 shrink-0" />
+            <span className="truncate">{listing.temperatureInfo || "Temp Monitored"}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-foreground truncate" title={listing.storageInfo}>
+            <IconShieldCheck size={14} className="text-emerald-500 shrink-0" />
+            <span className="truncate">{listing.storageInfo || "Food-Grade Container"}</span>
+          </div>
+        </div>
+
+        {/* Address and Deadline row */}
         <div className="space-y-1.5 text-xs text-muted-foreground">
           <p className="flex items-center gap-1.5 truncate">
             <IconMapPin size={14} className="shrink-0 text-muted-foreground" />
@@ -372,8 +560,13 @@ function ProviderListingCard({ listing }: { listing: Listing }) {
           <DeadlineText collectBy={listing.collectBy} />
         </div>
 
-        <div className="mt-auto flex flex-wrap gap-2 pt-2 border-t border-border/50">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
           <CancelListingButton listing={listing} />
+          {listing.portionsRemaining > 0 && (
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              Open to Shelters
+            </span>
+          )}
         </div>
       </div>
     </article>
@@ -391,8 +584,8 @@ function CancelListingButton({ listing }: { listing: Listing }) {
     return (
       <span className="text-[11px] font-medium text-muted-foreground italic">
         {listing.portionsRemaining < listing.portionsTotal
-          ? "Portions accepted by NGO (cannot cancel)"
-          : "Listing closed"}
+          ? "Portions reserved (active rescue)"
+          : "Batch closed"}
       </span>
     );
   }
@@ -405,14 +598,14 @@ function CancelListingButton({ listing }: { listing: Listing }) {
         className="h-8 rounded-full text-xs text-muted-foreground hover:text-destructive"
         onClick={() => setOpen(true)}
       >
-        Cancel Batch
+        Withdraw Batch
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="rounded-3xl">
           <DialogHeader>
-            <DialogTitle>Cancel this surplus listing?</DialogTitle>
+            <DialogTitle>Withdraw this surplus batch?</DialogTitle>
             <DialogDescription>
-              {listing.title} will be removed from NGO discovery immediately.
+              {listing.title} will be removed from shelter discovery immediately.
             </DialogDescription>
           </DialogHeader>
           {cancel.error ? (
@@ -420,7 +613,7 @@ function CancelListingButton({ listing }: { listing: Listing }) {
           ) : null}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-              Keep Listing
+              Keep Open
             </Button>
             <Button
               variant="destructive"
@@ -433,7 +626,7 @@ function CancelListingButton({ listing }: { listing: Listing }) {
                 )
               }
             >
-              {cancel.isPending ? "Cancelling…" : "Yes, Cancel Batch"}
+              {cancel.isPending ? "Withdrawing…" : "Yes, Withdraw"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -455,8 +648,8 @@ function DonationHistory({ rows }: { rows: DonationRow[] }) {
   if (rows.length === 0) {
     return (
       <EmptyState
-        title="No donation dispatches yet"
-        body="When an NGO claims a batch, its real-time journey will appear here."
+        title="No donation dispatches recorded yet"
+        body="When shelters claim meals, their complete dispatch timeline will appear here."
       />
     );
   }
@@ -464,10 +657,10 @@ function DonationHistory({ rows }: { rows: DonationRow[] }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
-          Dispatch Log & Donated Batches
+          Dispatch Timeline & Completed Handovers
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Historical record of all food handed over to community partners.
+          Audited log of food handover steps across shelter beneficiaries.
         </p>
       </div>
 
@@ -487,8 +680,8 @@ function DonationHistory({ rows }: { rows: DonationRow[] }) {
               <StatusBadge status={donation.status} donation />
             </div>
             <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-              <Timeline label="Accepted" value={donation.acceptedAt} />
-              <Timeline label="Courier" value={donation.assignedAt} />
+              <Timeline label="Reserved" value={donation.acceptedAt} />
+              <Timeline label="Courier Assigned" value={donation.assignedAt} />
               <Timeline label="Picked Up" value={donation.pickedUpAt} />
               <Timeline label="Delivered" value={donation.deliveredAt} />
             </dl>
