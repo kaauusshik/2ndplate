@@ -33,25 +33,25 @@ const NAV: Record<Role, NavItem[]> = {
   provider: [
     { label: "Dashboard", href: "/", icon: IconHome },
     { label: "Add Food", href: "/add", icon: IconPlus },
-    { label: "Urgent Demands", href: "/demands", icon: IconFlame },
-    { label: "Solidarity Events", href: "/events", icon: IconCalendarEvent },
-    { label: "Zero-Waste Vision", href: "/vision", icon: IconLeaf },
+    { label: "Demands", href: "/demands", icon: IconFlame },
+    { label: "Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Vision", href: "/vision", icon: IconLeaf },
     { label: "Impact", href: "/impact", icon: IconChartBar },
   ],
   ngo: [
     { label: "Discover", href: "/", icon: IconSearch },
-    { label: "Urgent Demands", href: "/demands", icon: IconFlame },
-    { label: "Map View", href: "/map", icon: IconMap },
-    { label: "Solidarity Events", href: "/events", icon: IconCalendarEvent },
-    { label: "Zero-Waste Vision", href: "/vision", icon: IconLeaf },
+    { label: "Demands", href: "/demands", icon: IconFlame },
+    { label: "Map", href: "/map", icon: IconMap },
+    { label: "Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Vision", href: "/vision", icon: IconLeaf },
     { label: "Impact", href: "/impact", icon: IconChartBar },
   ],
   volunteer: [
     { label: "Tasks", href: "/", icon: IconTruck },
-    { label: "Urgent Demands", href: "/demands", icon: IconFlame },
-    { label: "Nearby Map", href: "/map", icon: IconMap },
-    { label: "Solidarity Events", href: "/events", icon: IconCalendarEvent },
-    { label: "Zero-Waste Vision", href: "/vision", icon: IconLeaf },
+    { label: "Demands", href: "/demands", icon: IconFlame },
+    { label: "Map", href: "/map", icon: IconMap },
+    { label: "Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Vision", href: "/vision", icon: IconLeaf },
     { label: "Impact", href: "/impact", icon: IconChartBar },
   ],
 };
@@ -62,21 +62,21 @@ const MOBILE_NAV: Record<Role, NavItem[]> = {
     { label: "Add Food", href: "/add", icon: IconPlus },
     { label: "Demands", href: "/demands", icon: IconFlame },
     { label: "Events", href: "/events", icon: IconCalendarEvent },
-    { label: "Vision", href: "/vision", icon: IconLeaf },
+    { label: "Impact", href: "/impact", icon: IconChartBar },
   ],
   ngo: [
     { label: "Discover", href: "/", icon: IconSearch },
     { label: "Demands", href: "/demands", icon: IconFlame },
     { label: "Map", href: "/map", icon: IconMap },
     { label: "Events", href: "/events", icon: IconCalendarEvent },
-    { label: "Vision", href: "/vision", icon: IconLeaf },
+    { label: "Impact", href: "/impact", icon: IconChartBar },
   ],
   volunteer: [
     { label: "Tasks", href: "/", icon: IconTruck },
     { label: "Demands", href: "/demands", icon: IconFlame },
     { label: "Map", href: "/map", icon: IconMap },
     { label: "Events", href: "/events", icon: IconCalendarEvent },
-    { label: "Vision", href: "/vision", icon: IconLeaf },
+    { label: "Impact", href: "/impact", icon: IconChartBar },
   ],
 };
 
@@ -100,26 +100,29 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate("/");
   };
 
+  const isItemActive = (href: string) => {
+    if (href.includes("?")) return here === href;
+    if (href === "/") return location.pathname === "/";
+    return location.pathname === href || location.pathname.startsWith(`${href}/`);
+  };
+
   return (
     <div className="flex min-h-full w-full flex-col bg-background text-foreground transition-colors duration-200">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="group flex items-center gap-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
+          <div className="flex items-center gap-3 lg:gap-6 min-w-0">
+            <Link to="/" className="group flex items-center gap-2.5 shrink-0">
               <div className="relative flex items-center justify-center rounded-xl bg-primary/10 p-1.5 transition-transform duration-200 group-hover:scale-105">
-                <SecondPlateMark className="h-7 w-7 text-primary" />
+                <SecondPlateMark className="h-6 w-6 text-primary" />
                 <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse" />
               </div>
               <div className="leading-tight">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <p className="text-sm font-black tracking-wider text-foreground">
                     SECOND PLATE
                   </p>
-                  <span className="hidden sm:inline-block rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold tracking-widest text-primary uppercase">
-                    PROD
-                  </span>
                 </div>
-                <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase hidden sm:block">
                   Rescue Food · Share Hope
                 </p>
               </div>
@@ -127,37 +130,37 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <nav
               aria-label="Desktop navigation"
-              className="hidden items-center gap-1 md:flex"
+              className="hidden md:flex items-center gap-0.5 lg:gap-1"
             >
               {items.map((item) => {
                 const Icon = item.icon;
-                const active = here === item.href;
+                const active = isItemActive(item.href);
                 return (
                   <Link
                     key={item.label}
                     to={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all",
+                      "flex items-center gap-1.5 rounded-full px-2.5 lg:px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap",
                       active
-                        ? "bg-primary text-primary-foreground shadow-xs"
+                        ? "bg-primary text-primary-foreground shadow-2xs font-bold"
                         : "text-muted-foreground hover:bg-accent/80 hover:text-foreground",
                     )}
                   >
-                    <Icon size={14} />
-                    {item.label}
+                    <Icon size={14} className="shrink-0" />
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}
             </nav>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Interactive Role Switcher */}
             <div
               role="radiogroup"
-              aria-label="Demo role selector"
-              className="flex items-center rounded-full border border-border/80 bg-card p-1 shadow-2xs"
+              aria-label="Portal role selector"
+              className="flex items-center rounded-full border border-border/80 bg-card p-0.5 shadow-2xs"
             >
               {(Object.keys(ROLE_LABELS) as Role[]).map((value) => {
                 const Icon = ROLE_ICONS[value];
@@ -169,15 +172,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                     role="radio"
                     aria-checked={isSelected}
                     onClick={() => switchRole(value)}
+                    title={`Switch to ${ROLE_LABELS[value]} portal`}
                     className={cn(
                       "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all",
                       isSelected
-                        ? "bg-primary text-primary-foreground shadow-2xs scale-102"
+                        ? "bg-primary text-primary-foreground shadow-2xs"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
                     )}
                   >
-                    <Icon size={13} />
-                    <span className="hidden sm:inline">{ROLE_LABELS[value]}</span>
+                    <Icon size={13} className="shrink-0" />
+                    <span className={cn(isSelected ? "inline" : "hidden xl:inline")}>
+                      {ROLE_LABELS[value]}
+                    </span>
                   </button>
                 );
               })}
@@ -215,7 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <ul className="mx-auto grid max-w-md grid-cols-5 py-1">
           {mobileItems.map((item) => {
             const Icon = item.icon;
-            const active = here === item.href;
+            const active = isItemActive(item.href);
             return (
               <li key={item.label}>
                 <Link
