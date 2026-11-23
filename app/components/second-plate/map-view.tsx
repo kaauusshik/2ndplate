@@ -13,6 +13,8 @@ import {
   DEMO_BASE,
   type DonationRow,
   type Listing,
+  type FoodDestinationTier,
+  DESTINATION_TIER_META,
   distanceKm,
   useDemoRole,
   useListingsData,
@@ -34,6 +36,7 @@ type Point = {
   longitude: number;
   collectBy: string;
   portions: number;
+  destinationTier: FoodDestinationTier;
 };
 
 const WIDTH = 640;
@@ -255,6 +258,11 @@ export function MapView() {
                       <p className="truncate text-xs text-muted-foreground font-medium">
                         {point.subtitle} · <strong>{point.portions} portions</strong>
                       </p>
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <span className="text-[10px] font-bold rounded-md bg-secondary px-1.5 py-0.5 border border-border/60">
+                          {DESTINATION_TIER_META[point.destinationTier ?? "people"]?.badge ?? "👥 Tier 1"}
+                        </span>
+                      </div>
                       <div className="flex items-center justify-between gap-2 text-xs pt-1 border-t border-border/40">
                         <span className="inline-flex items-center gap-1 font-semibold text-primary">
                           <IconMapPin size={12} />
@@ -283,6 +291,7 @@ function toPoint(listing: Listing, portions: number, subtitle: string): Point {
     longitude: listing.longitude,
     collectBy: listing.collectBy,
     portions,
+    destinationTier: listing.destinationTier ?? "people",
   };
 }
 

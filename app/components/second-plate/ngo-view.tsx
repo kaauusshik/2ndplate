@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import {
   IconSearch,
   IconFilter,
@@ -10,6 +11,8 @@ import {
   IconCheck,
   IconClock,
   IconUser,
+  IconCalendarEvent,
+  IconLeaf,
 } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,13 +30,16 @@ import {
   DEMO_BASE,
   DEMO_NGO_ADDRESS,
   DEMO_NGO_NAME,
+  DESTINATION_TIER_META,
   type DonationRow,
   type Listing,
+  type FoodDestinationTier,
   distanceKm,
   isOpenForAcceptance,
   useNow,
   useListingsData,
   useDonationsData,
+  useNgoDemandsData,
   useSecondPlateActions,
 } from "@/lib/second-plate";
 import { cn } from "@/lib/utils";
@@ -50,6 +56,7 @@ type Filters = {
   search: string;
   maxKm: number;
   category: string;
+  destinationTier: "all" | FoodDestinationTier;
   vegOnly: boolean;
   minPortions: number;
   withinHours: number;
@@ -59,6 +66,7 @@ const DEFAULT_FILTERS: Filters = {
   search: "",
   maxKm: 25,
   category: "all",
+  destinationTier: "all",
   vegOnly: false,
   minPortions: 1,
   withinHours: 24,
@@ -102,6 +110,7 @@ function Discover({ listings }: { listings: Listing[] }) {
         return (
           km <= filters.maxKm &&
           (filters.category === "all" || listing.category === filters.category) &&
+          (filters.destinationTier === "all" || (listing.destinationTier ?? "people") === filters.destinationTier) &&
           (!filters.vegOnly || listing.isVegetarian) &&
           listing.portionsRemaining >= filters.minPortions &&
           hoursLeft <= filters.withinHours
@@ -135,6 +144,37 @@ function Discover({ listings }: { listings: Listing[] }) {
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             {ranked.length} Available Near You
           </span>
+        </div>
+      </section>
+
+      {/* Urgent Food Demand Broadcast Banner */}
+      <section className="rounded-3xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <IconFlame size={22} className="animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">
+              Facing an Evening Food Deficit? Broadcast an Urgent Demand
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
+              Specify your shelter&rsquo;s required meals and target deadline (e.g. <em>&ldquo;Need 50 meals by 9:00 PM&rdquo;</em>). Local restaurants and banquet halls receive direct alerts to pledge food.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link to="/demands">
+            <Button className="rounded-2xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold gap-1.5 shadow-xs text-xs">
+              <IconPlus size={16} />
+              Broadcast Demand
+            </Button>
+          </Link>
+          <Link to="/events">
+            <Button variant="outline" className="rounded-2xl text-xs font-semibold gap-1.5">
+              <IconCalendarEvent size={15} />
+              Solidarity Drives
+            </Button>
+          </Link>
         </div>
       </section>
 
@@ -206,6 +246,43 @@ function Discover({ listings }: { listings: Listing[] }) {
           >
             🌱 Veg Only
           </button>
+        </div>
+
+        {/* Destination Channel Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs pt-2 border-t border-border/50">
+          <span className="text-[11px] font-bold text-muted-foreground mr-1 shrink-0">Channel:</span>
+          <button
+            type="button"
+            onClick={() => setFilters({ ...filters, destinationTier: "all" })}
+            className={cn(
+              "rounded-full px-3 py-1 font-semibold transition-all border shrink-0",
+              filters.destinationTier === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border/70 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            All Channels
+          </button>
+          {(["people", "animals", "compost"] as FoodDestinationTier[]).map((tierKey) => {
+            const meta = DESTINATION_TIER_META[tierKey];
+            const isSelected = filters.destinationTier === tierKey;
+            return (
+              <button
+                key={tierKey}
+                type="button"
+                onClick={() => setFilters({ ...filters, destinationTier: tierKey })}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold transition-all border shrink-0",
+                  isSelected
+                    ? cn(meta.bgTone, meta.textTone, meta.borderTone, "ring-2 ring-primary/20 font-bold")
+                    : "border-border/70 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span>{meta.icon}</span>
+                <span>{meta.shortTitle}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 

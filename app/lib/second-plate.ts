@@ -16,6 +16,67 @@ export const DEMO_BASE = { latitude: 20.2961, longitude: 85.8245 };
 
 export const DEFAULT_LOCATION = { latitude: 20.2961, longitude: 85.8245 };
 
+// -----------------------------------------------------------------------------
+// 3-Tier Food Destination Architecture
+// -----------------------------------------------------------------------------
+// Tier 1: People & NGOs (Fresh surplus for direct human consumption & shelters)
+// Tier 2: Animal Feed (Safe cooked grains, bread, produce for cattle & animal shelters)
+// Tier 3: Compost & Biogas (Organic scraps & trimmings converted to clean energy & rich soil)
+export type FoodDestinationTier = "people" | "animals" | "compost";
+
+export const DESTINATION_TIER_META: Record<
+  FoodDestinationTier,
+  {
+    tier: number;
+    title: string;
+    shortTitle: string;
+    sublabel: string;
+    badge: string;
+    icon: string;
+    tone: string;
+    borderTone: string;
+    bgTone: string;
+    textTone: string;
+  }
+> = {
+  people: {
+    tier: 1,
+    title: "Tier 1: People & NGOs (Direct Relief)",
+    shortTitle: "Direct to People / NGO",
+    sublabel: "Strictly fresh, edible meals & groceries for human consumption",
+    badge: "👥 Tier 1: People / NGO (Fresh)",
+    icon: "👥",
+    tone: "emerald",
+    borderTone: "border-emerald-500/30",
+    bgTone: "bg-emerald-500/10",
+    textTone: "text-emerald-700 dark:text-emerald-400",
+  },
+  animals: {
+    tier: 2,
+    title: "Tier 2: Animal Feed (Cattle & Shelters)",
+    shortTitle: "Animal Feed & Gaushalas",
+    sublabel: "Wholesome grains, vegetables & bread safe for cattle, stray feeders & animal shelters",
+    badge: "🐾 Tier 2: Animal Feed",
+    icon: "🐾",
+    tone: "amber",
+    borderTone: "border-amber-500/30",
+    bgTone: "bg-amber-500/10",
+    textTone: "text-amber-700 dark:text-amber-400",
+  },
+  compost: {
+    tier: 3,
+    title: "Tier 3: Compost & Biogas (Circular Green Energy)",
+    shortTitle: "Compost & Biogas",
+    sublabel: "Over-ripe scraps, peels & biomass converted to biogas fuel or organic fertilizer",
+    badge: "♻️ Tier 3: Compost / Biogas",
+    icon: "♻️",
+    tone: "teal",
+    borderTone: "border-teal-500/30",
+    bgTone: "bg-teal-500/10",
+    textTone: "text-teal-700 dark:text-teal-400",
+  },
+};
+
 export type Listing = {
   id: string;
   isDemo: boolean;
@@ -23,6 +84,8 @@ export type Listing = {
   providerType: string;
   title: string;
   category: string;
+  destinationTier: FoodDestinationTier;
+  allowAlternativeRouting: boolean;
   isVegetarian: boolean;
   description: string;
   portionsTotal: number;
@@ -60,6 +123,51 @@ export type Donation = {
 };
 
 export type DonationRow = { donation: Donation; listing: Listing };
+
+// -----------------------------------------------------------------------------
+// NGO Food Demands & Donor Pledge System
+// -----------------------------------------------------------------------------
+export type DemandPledge = {
+  id: string;
+  donorName: string;
+  portions: number;
+  pledgedAt: string;
+  note?: string | undefined;
+};
+
+export type NgoDemand = {
+  id: string;
+  isDemo: boolean;
+  ngoName: string;
+  foodType: string;
+  portionsNeeded: number;
+  portionsPledged: number;
+  deadlineTime: string; // e.g. "9:00 PM tonight" or ISO timestamp
+  urgency: "critical" | "high" | "normal";
+  location: string;
+  purpose: string;
+  status: "OPEN" | "FULFILLED";
+  pledges: DemandPledge[];
+  createdAt: string;
+};
+
+// -----------------------------------------------------------------------------
+// Organized Events & World Food Day Drives
+// -----------------------------------------------------------------------------
+export type SolidarityEvent = {
+  id: string;
+  title: string;
+  dateLabel: string;
+  organizer: string;
+  theme: string;
+  description: string;
+  targetMeals: number;
+  pledgedMeals: number;
+  partnerNgos: string[];
+  participatingDonors: string[];
+  isAnnual: boolean;
+  badge: string;
+};
 
 export const LISTING_STATUS_LABELS: Record<string, string> = {
   AVAILABLE: "Available",
@@ -210,6 +318,8 @@ export function getInitialDemoListings(): Listing[] {
       providerType: "event",
       title: "Dal Makhani, Jeera Rice & Paneer Butter Masala",
       category: "cooked_meal",
+      destinationTier: "people",
+      allowAlternativeRouting: true,
       isVegetarian: true,
       description: "Fresh surplus from dinner reception, packed in heavy-duty food-grade insulated thermal containers. Never self-served.",
       portionsTotal: 65,
@@ -235,6 +345,8 @@ export function getInitialDemoListings(): Listing[] {
       providerType: "restaurant",
       title: "Fresh Baked Butter Croissants & Multi-grain Artisan Loaves",
       category: "bakery",
+      destinationTier: "people",
+      allowAlternativeRouting: true,
       isVegetarian: true,
       description: "Surplus baked goods made this afternoon. Packaged in moisture-resistant kraft bakery bags.",
       portionsTotal: 35,
@@ -260,6 +372,8 @@ export function getInitialDemoListings(): Listing[] {
       providerType: "canteen",
       title: "Steamed Idlis, Crispy Medu Vadas & Mixed Veg Sambhar",
       category: "cooked_meal",
+      destinationTier: "people",
+      allowAlternativeRouting: true,
       isVegetarian: true,
       description: "Prepared for evening corporate shifts. Maintained under certified thermal bain-marie holding.",
       portionsTotal: 50,
@@ -285,8 +399,10 @@ export function getInitialDemoListings(): Listing[] {
       providerType: "canteen",
       title: "Grade-A Surplus Spinach, Ripe Tomatoes & Cluster Beans",
       category: "produce",
+      destinationTier: "animals",
+      allowAlternativeRouting: true,
       isVegetarian: true,
-      description: "Unsold crisp produce crate surplus. Inspected and sorted, free from bruising.",
+      description: "Surplus fresh greens, ripe squash and bean pods. Checked and ideal for cattle feed and local Gaushalas.",
       portionsTotal: 80,
       portionsRemaining: 80,
       weightKg: 32.0,
@@ -310,6 +426,8 @@ export function getInitialDemoListings(): Listing[] {
       providerType: "restaurant",
       title: "Aromatic Hyderabadi Dum Biryani with Veg Salan",
       category: "cooked_meal",
+      destinationTier: "people",
+      allowAlternativeRouting: false,
       isVegetarian: true,
       description: "Fresh evening surplus dispatched to Kalinga Shelter Trust.",
       portionsTotal: 40,
@@ -327,6 +445,60 @@ export function getInitialDemoListings(): Listing[] {
       status: "DELIVERED",
       createdAt: new Date(now - 24 * 3_600_000).toISOString(),
       updatedAt: new Date(now - 18 * 3_600_000).toISOString(),
+    },
+    {
+      id: "demo-listing-6",
+      isDemo: true,
+      providerName: "Jaydev Community Bakery & Dairy",
+      providerType: "restaurant",
+      title: "Wholesome Day-Old Bran Loaves & Cracked Grain Porridge",
+      category: "bakery",
+      destinationTier: "animals",
+      allowAlternativeRouting: true,
+      isVegetarian: true,
+      description: "Unsold plain wheat bran loaves and cooked grain mash. Strictly safe and nutritious for Gaushala cows and animal shelter feeders.",
+      portionsTotal: 40,
+      portionsRemaining: 35,
+      weightKg: 18.0,
+      preparedAt: new Date(now - 200 * 60_000).toISOString(),
+      collectBy: new Date(now + 5 * 3_600_000).toISOString(),
+      storageInfo: "Dry ventilated bins, clean food grade containers.",
+      temperatureInfo: "Cool ambient",
+      allergens: "Wheat gluten",
+      pickupAddress: "Plot 19, Chandrasekharpur, Bhubaneswar",
+      latitude: 20.3245,
+      longitude: 85.8190,
+      contactPhone: "+91 94371 88990",
+      status: "AVAILABLE",
+      createdAt: new Date(now - 200 * 60_000).toISOString(),
+      updatedAt: new Date(now - 60 * 60_000).toISOString(),
+    },
+    {
+      id: "demo-listing-7",
+      isDemo: true,
+      providerName: "Central Agro Processing Kitchen",
+      providerType: "canteen",
+      title: "Organic Vegetable Trimmings & Kitchen Biomass",
+      category: "produce",
+      destinationTier: "compost",
+      allowAlternativeRouting: false,
+      isVegetarian: true,
+      description: "Clean vegetable trimmings, squash rinds, and grain chaff suitable for localized biomethanation biogas digester or aerobic organic compost.",
+      portionsTotal: 60,
+      portionsRemaining: 60,
+      weightKg: 42.0,
+      preparedAt: new Date(now - 150 * 60_000).toISOString(),
+      collectBy: new Date(now + 8 * 3_600_000).toISOString(),
+      storageInfo: "Aerated organic green collection bins.",
+      temperatureInfo: "Ambient compost collection",
+      allergens: "None",
+      pickupAddress: "Industrial Estate Block 4, Mancheswar, Bhubaneswar",
+      latitude: 20.3120,
+      longitude: 85.8560,
+      contactPhone: "+91 99380 44556",
+      status: "AVAILABLE",
+      createdAt: new Date(now - 150 * 60_000).toISOString(),
+      updatedAt: new Date(now - 150 * 60_000).toISOString(),
     },
   ];
 }
@@ -385,25 +557,184 @@ export function getInitialDemoDonations(): Donation[] {
   ];
 }
 
+export function getInitialDemoDemands(): NgoDemand[] {
+  const now = typeof Date !== "undefined" ? Date.now() : 1731520000000;
+  return [
+    {
+      id: "demand-1",
+      isDemo: true,
+      ngoName: "Kalinga Shelter Trust (Demo)",
+      foodType: "Dal, Steamed Rice & Mixed Sabzi",
+      portionsNeeded: 50,
+      portionsPledged: 20,
+      deadlineTime: "9:00 PM tonight",
+      urgency: "high",
+      location: "Station Square Night Shelter, Bhubaneswar",
+      purpose: "Emergency evening dinner distribution for homeless daily-wage earners",
+      status: "OPEN",
+      pledges: [
+        {
+          id: "pledge-1",
+          donorName: "Royal Heritage Grand Banquet",
+          portions: 20,
+          pledgedAt: new Date(now - 30 * 60_000).toISOString(),
+          note: "Dispatching via insulated thermo carrier",
+        },
+      ],
+      createdAt: new Date(now - 60 * 60_000).toISOString(),
+    },
+    {
+      id: "demand-2",
+      isDemo: true,
+      ngoName: "Ashraya Child & Women Care Trust",
+      foodType: "Nutritious Fruit Baskets, Bread & Milk",
+      portionsNeeded: 35,
+      portionsPledged: 35,
+      deadlineTime: "7:30 PM today",
+      urgency: "normal",
+      location: "Plot 42, Baramunda Housing Colony, Bhubaneswar",
+      purpose: "Evening wholesome nutritious snacks for 35 children",
+      status: "FULFILLED",
+      pledges: [
+        {
+          id: "pledge-2",
+          donorName: "Mayfair Artisan Bakery",
+          portions: 35,
+          pledgedAt: new Date(now - 90 * 60_000).toISOString(),
+          note: "Fresh loaves and fruit packs ready for pickup",
+        },
+      ],
+      createdAt: new Date(now - 120 * 60_000).toISOString(),
+    },
+    {
+      id: "demand-3",
+      isDemo: true,
+      ngoName: "Capital Patient Attendant Seva",
+      foodType: "Khichdi / Upma / Chapati with Dal",
+      portionsNeeded: 75,
+      portionsPledged: 25,
+      deadlineTime: "9:30 PM tonight",
+      urgency: "critical",
+      location: "Capital Hospital Gate 2 Relief Tent, Unit-6",
+      purpose: "Hot meal support for poor family members attending hospital ICU patients",
+      status: "OPEN",
+      pledges: [
+        {
+          id: "pledge-3",
+          donorName: "Kalinga Spice Kitchen",
+          portions: 25,
+          pledgedAt: new Date(now - 15 * 60_000).toISOString(),
+          note: "Warm khichdi freshly packed in 25 insulated boxes",
+        },
+      ],
+      createdAt: new Date(now - 45 * 60_000).toISOString(),
+    },
+  ];
+}
+
+export function getInitialDemoEvents(): SolidarityEvent[] {
+  return [
+    {
+      id: "event-world-food-day",
+      title: "World Food Day Solidarity Mega-Drive",
+      dateLabel: "October 16 · Annual Flagship Drive",
+      organizer: "Bhubaneswar Hotel & Restaurant Coalition × Second Plate",
+      theme: "Leave NO ONE Behind — Zero Hunger, Zero Landfill Waste",
+      description: "An annual collective movement where 45+ premier restaurants, banquet halls, and caterers mobilize excess gourmet and staple meals specifically for verified community kitchens and shelters across the city.",
+      targetMeals: 10000,
+      pledgedMeals: 7650,
+      partnerNgos: [
+        "Kalinga Shelter Trust",
+        "Ashraya Child & Women Care",
+        "Vastram & Aahar Seva",
+        "Jan Seva Samiti",
+        "Sneha Gaushala Federation",
+      ],
+      participatingDonors: [
+        "Royal Heritage Grand Banquet",
+        "Mayfair Artisan Bakery",
+        "Infocity Tech Park Corporate Canteen",
+        "Crown Kitchens",
+        "Swosti Premium",
+        "Kalinga Spice Kitchen",
+      ],
+      isAnnual: true,
+      badge: "October 16 · World Food Day",
+    },
+    {
+      id: "event-animal-gaushala",
+      title: "Paws & Pastures: Gaushala & Animal Rescue Feed",
+      dateLabel: "Every Sunday · Ongoing Collective",
+      organizer: "Second Plate Animal Welfare Wing",
+      theme: "Nutritious Food for Every Living Being",
+      description: "Connecting wholesome unsold bread, vegetable greens, and grains directly to local animal shelters, stray animal rescue teams, and registered Gaushalas.",
+      targetMeals: 2500,
+      pledgedMeals: 1980,
+      partnerNgos: [
+        "Bhubaneswar Gaushala Trust",
+        "Paws of Hope Animal Hospital",
+        "Street Animal Feeder Collective",
+      ],
+      participatingDonors: [
+        "Jaydev Community Bakery",
+        "Utkal Wholesale Agri Mandi",
+        "Infocity Tech Park Canteen",
+      ],
+      isAnnual: false,
+      badge: "Weekly Animal Outreach",
+    },
+    {
+      id: "event-biogas-compost",
+      title: "Green Earth Biogas & Circular Biomass Campaign",
+      dateLabel: "Nov 25 - Dec 2 · City Green Drive",
+      organizer: "Municipal Circular Bio-Energy Hub",
+      theme: "From Inedible Scraps to Renewable Cooking Gas",
+      description: "Redirecting 10 tonnes of inedible kitchen scraps, trimmings, and crop biomass to decentralized biomethanation digesters, producing clean cooking biogas for community shelters.",
+      targetMeals: 5000,
+      pledgedMeals: 4320,
+      partnerNgos: [
+        "BMC Decentralized Bio-Methanation Plant",
+        "Utkal Organic Green Composting Alliance",
+      ],
+      participatingDonors: [
+        "Central Agro Processing Kitchen",
+        "Royal Heritage Banquets",
+        "KIIT Food Court",
+      ],
+      isAnnual: true,
+      badge: "Renewable Energy & Compost",
+    },
+  ];
+}
+
 type StoreState = {
   listings: Listing[];
   donations: Donation[];
+  demands: NgoDemand[];
+  events: SolidarityEvent[];
 };
 
-const STORE_KEY = "second-plate-client-store-v2";
+const STORE_KEY = "second-plate-client-store-v3";
 
 function loadSavedStore(): StoreState {
   if (typeof window === "undefined") {
     return {
       listings: getInitialDemoListings(),
       donations: getInitialDemoDonations(),
+      demands: getInitialDemoDemands(),
+      events: getInitialDemoEvents(),
     };
   }
   try {
     const raw = window.localStorage?.getItem(STORE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed?.listings) && Array.isArray(parsed?.donations)) {
+      if (
+        Array.isArray(parsed?.listings) &&
+        Array.isArray(parsed?.donations) &&
+        Array.isArray(parsed?.demands) &&
+        Array.isArray(parsed?.events)
+      ) {
         return parsed;
       }
     }
@@ -413,6 +744,8 @@ function loadSavedStore(): StoreState {
   return {
     listings: getInitialDemoListings(),
     donations: getInitialDemoDonations(),
+    demands: getInitialDemoDemands(),
+    events: getInitialDemoEvents(),
   };
 }
 
@@ -450,11 +783,15 @@ export function useSecondPlateStore() {
 }
 
 export const secondPlateActions = {
-  createListing(input: Omit<Listing, "id" | "isDemo" | "createdAt" | "updatedAt"> & { isDemo?: boolean }) {
+  createListing(
+    input: Omit<Listing, "id" | "isDemo" | "createdAt" | "updatedAt"> & { isDemo?: boolean },
+  ) {
     const now = new Date().toISOString();
     const newListing: Listing = {
       ...input,
       id: `listing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      destinationTier: input.destinationTier ?? "people",
+      allowAlternativeRouting: input.allowAlternativeRouting ?? true,
       isDemo: input.isDemo ?? false,
       createdAt: now,
       updatedAt: now,
@@ -509,6 +846,7 @@ export const secondPlateActions = {
     };
 
     clientState = {
+      ...clientState,
       listings: clientState.listings.map((l) => (l.id === listingId ? updatedListing : l)),
       donations: [newDonation, ...clientState.donations],
     };
@@ -564,6 +902,7 @@ export const secondPlateActions = {
     }
 
     clientState = {
+      ...clientState,
       listings: updatedListings,
       donations: clientState.donations.map((d) => (d.id === donationId ? updatedDonation : d)),
     };
@@ -576,10 +915,120 @@ export const secondPlateActions = {
     clientState = {
       ...clientState,
       listings: clientState.listings.map((l) =>
-        l.id === listingId ? { ...l, status: "CANCELLED", updatedAt: now } : l
+        l.id === listingId ? { ...l, status: "CANCELLED", updatedAt: now } : l,
       ),
     };
     persistStore();
+  },
+
+  // ---------------------------------------------------------------------------
+  // Demand Actions
+  // ---------------------------------------------------------------------------
+  createNgoDemand(input: {
+    ngoName: string;
+    foodType: string;
+    portionsNeeded: number;
+    deadlineTime: string;
+    urgency: "critical" | "high" | "normal";
+    location: string;
+    purpose: string;
+  }) {
+    const now = new Date().toISOString();
+    const newDemand: NgoDemand = {
+      id: `demand-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      isDemo: true,
+      ngoName: input.ngoName,
+      foodType: input.foodType,
+      portionsNeeded: input.portionsNeeded,
+      portionsPledged: 0,
+      deadlineTime: input.deadlineTime,
+      urgency: input.urgency,
+      location: input.location,
+      purpose: input.purpose,
+      status: "OPEN",
+      pledges: [],
+      createdAt: now,
+    };
+    clientState = {
+      ...clientState,
+      demands: [newDemand, ...clientState.demands],
+    };
+    persistStore();
+    return newDemand;
+  },
+
+  pledgeToDemand({
+    demandId,
+    donorName,
+    portions,
+    note,
+  }: {
+    demandId: string;
+    donorName: string;
+    portions: number;
+    note?: string | undefined;
+  }) {
+    const demand = clientState.demands.find((d) => d.id === demandId);
+    if (!demand) throw new Error("Demand not found");
+    const now = new Date().toISOString();
+
+    const newPledge: DemandPledge = {
+      id: `pledge-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      donorName,
+      portions,
+      pledgedAt: now,
+      note,
+    };
+
+    const newTotalPledged = demand.portionsPledged + portions;
+    const isFulfilled = newTotalPledged >= demand.portionsNeeded;
+
+    const updatedDemand: NgoDemand = {
+      ...demand,
+      portionsPledged: newTotalPledged,
+      status: isFulfilled ? "FULFILLED" : demand.status,
+      pledges: [newPledge, ...demand.pledges],
+    };
+
+    clientState = {
+      ...clientState,
+      demands: clientState.demands.map((d) => (d.id === demandId ? updatedDemand : d)),
+    };
+    persistStore();
+    return updatedDemand;
+  },
+
+  // ---------------------------------------------------------------------------
+  // Event Actions
+  // ---------------------------------------------------------------------------
+  pledgeToEvent({
+    eventId,
+    donorName,
+    portions,
+  }: {
+    eventId: string;
+    donorName: string;
+    portions: number;
+  }) {
+    const event = clientState.events.find((e) => e.id === eventId);
+    if (!event) throw new Error("Event not found");
+
+    const updatedDonors = event.participatingDonors.includes(donorName)
+      ? event.participatingDonors
+      : [donorName, ...event.participatingDonors];
+
+    const updatedEvent: SolidarityEvent = {
+      ...event,
+      pledgedMeals: event.pledgedMeals + portions,
+      participatingDonors: updatedDonors,
+    };
+
+    clientState = {
+      ...clientState,
+      events: clientState.events.map((e) => (e.id === eventId ? updatedEvent : e)),
+    };
+    persistStore();
+    return updatedEvent;
   },
 
   seedDemoData(mode: "append" | "refresh" = "append") {
@@ -587,6 +1036,8 @@ export const secondPlateActions = {
       clientState = {
         listings: getInitialDemoListings(),
         donations: getInitialDemoDonations(),
+        demands: getInitialDemoDemands(),
+        events: getInitialDemoEvents(),
       };
       persistStore();
       return;
@@ -608,6 +1059,8 @@ export const secondPlateActions = {
     clientState = {
       listings: getInitialDemoListings(),
       donations: getInitialDemoDonations(),
+      demands: getInitialDemoDemands(),
+      events: getInitialDemoEvents(),
     };
     persistStore();
   },
@@ -654,6 +1107,28 @@ export function useDonationsData() {
   };
 }
 
+export function useNgoDemandsData() {
+  const store = useSecondPlateStore();
+  return {
+    data: store.demands,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: () => {},
+  };
+}
+
+export function useSolidarityEventsData() {
+  const store = useSecondPlateStore();
+  return {
+    data: store.events,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: () => {},
+  };
+}
+
 export function useImpactData() {
   const store = useSecondPlateStore();
   const impact = useMemo(() => {
@@ -665,6 +1140,9 @@ export function useImpactData() {
       activeProviders: 0,
       ngosReceiving: 0,
       volunteerDeliveries: 0,
+      tierPeoplePortions: 0,
+      tierAnimalKg: 0,
+      tierCompostKg: 0,
     });
     const totals = { real: emptyTotals(), demo: emptyTotals() };
     const ngos = { real: new Set<string>(), demo: new Set<string>() };
@@ -677,8 +1155,24 @@ export function useImpactData() {
       const scope = donation.isDemo ? "demo" : "real";
       const t = totals[scope];
       t.portions += donation.portions;
+      const tier = listing?.destinationTier ?? "people";
+      const fraction = listing?.portionsTotal && listing.portionsTotal > 0
+        ? donation.portions / listing.portionsTotal
+        : 1;
+      const donationWeight = listing?.weightKg ? listing.weightKg * fraction : donation.portions * 0.4;
+
+      if (tier === "people") {
+        t.tierPeoplePortions += donation.portions;
+      } else if (tier === "animals") {
+        t.tierAnimalKg += donationWeight;
+      } else if (tier === "compost") {
+        t.tierCompostKg += donationWeight;
+      }
+
       if (listing?.weightKg && listing.portionsTotal > 0) {
-        t.weightKg += listing.weightKg * (donation.portions / listing.portionsTotal);
+        t.weightKg += listing.weightKg * fraction;
+      } else {
+        t.weightKg += donationWeight;
       }
       t.completedDonations += 1;
       if (donation.volunteerName) t.volunteerDeliveries += 1;
@@ -700,6 +1194,10 @@ export function useImpactData() {
     totals.demo.activeProviders = providerSets.demo.size;
     totals.real.weightKg = Math.round(totals.real.weightKg * 10) / 10;
     totals.demo.weightKg = Math.round(totals.demo.weightKg * 10) / 10;
+    totals.real.tierAnimalKg = Math.round(totals.real.tierAnimalKg * 10) / 10;
+    totals.demo.tierAnimalKg = Math.round(totals.demo.tierAnimalKg * 10) / 10;
+    totals.real.tierCompostKg = Math.round(totals.real.tierCompostKg * 10) / 10;
+    totals.demo.tierCompostKg = Math.round(totals.demo.tierCompostKg * 10) / 10;
 
     return {
       real: totals.real,

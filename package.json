@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "migrate:production": "tsx scripts/migrate-production.ts",
-    "dev": "agent-native dev",
+    "dev": "vite",
     "build": "agent-native build",
     "build:vercel": "NITRO_PRESET=vercel agent-native build",
     "start": "agent-native start",

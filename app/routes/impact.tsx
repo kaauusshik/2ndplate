@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import {
   IconLeaf,
   IconDroplet,
@@ -6,6 +7,8 @@ import {
   IconChartBar,
   IconBolt,
   IconSparkles,
+  IconArrowRight,
+  IconHeartHandshake,
 } from "@tabler/icons-react";
 
 import { AppShell } from "@/components/second-plate/app-shell";
@@ -31,6 +34,9 @@ type Totals = {
   activeProviders: number;
   ngosReceiving: number;
   volunteerDeliveries: number;
+  tierPeoplePortions?: number;
+  tierAnimalKg?: number;
+  tierCompostKg?: number;
 };
 
 type Impact = {
@@ -129,6 +135,68 @@ function ImpactContent({ data }: { data: Impact }) {
             </div>
             <p className="text-2xl font-black text-foreground">{carKmSaved.toLocaleString()} km</p>
             <p className="text-[11px] text-muted-foreground">Equivalent vehicle travel</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 3-Tier Zero-Waste Redirection Architecture Breakdown */}
+      <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <span className="text-lg">🔄</span>
+              3-Tier Surplus Cascade Distribution
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Food distribution categorized by destination channel according to the circular charter.
+            </p>
+          </div>
+          <Link
+            to="/vision"
+            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0"
+          >
+            Explore Circular Vision &rarr;
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-emerald-700 dark:text-emerald-300">👥 Tier 1: People & NGOs</span>
+              <span className="text-[10px] rounded-full bg-emerald-500/15 px-2 py-0.5 font-bold text-emerald-600 dark:text-emerald-400">Fresh</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">
+              {data.demo.tierPeoplePortions ?? 60} <span className="text-sm font-semibold text-muted-foreground">portions</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Surplus dispatched directly to homeless shelters, children&rsquo;s homes & community pantries.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-amber-700 dark:text-amber-300">🐾 Tier 2: Animal Feed</span>
+              <span className="text-[10px] rounded-full bg-amber-500/15 px-2 py-0.5 font-bold text-amber-600 dark:text-amber-400">Gaushalas</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">
+              {data.demo.tierAnimalKg ?? 18} <span className="text-sm font-semibold text-muted-foreground">kg</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Clean grains, bread & vegetable discards safely fed to cows, cattle & rescued street animals.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-teal-500/30 bg-teal-500/5 p-4 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-teal-700 dark:text-teal-300">♻️ Tier 3: Biogas & Compost</span>
+              <span className="text-[10px] rounded-full bg-teal-500/15 px-2 py-0.5 font-bold text-teal-600 dark:text-teal-400">Circular</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">
+              {data.demo.tierCompostKg ?? 42} <span className="text-sm font-semibold text-muted-foreground">kg</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Kitchen peels and over-ripe trimmings diverted to decentralized biomethanation & soil enrichment.
+            </p>
           </div>
         </div>
       </section>

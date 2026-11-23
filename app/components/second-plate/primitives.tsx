@@ -17,10 +17,12 @@ import {
   CATEGORY_LABELS,
   DONATION_STATUS_LABELS,
   LISTING_STATUS_LABELS,
+  DESTINATION_TIER_META,
   formatDateTime,
   formatRemaining,
   useNow,
   type Listing,
+  type FoodDestinationTier,
 } from "@/lib/second-plate";
 
 const STATUS_TONE: Record<string, string> = {
@@ -151,6 +153,24 @@ export function ListingCard({
 
         {/* Badges / Meta tags */}
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          {/* Destination Tier Badge */}
+          {(() => {
+            const tierMeta = DESTINATION_TIER_META[listing.destinationTier ?? "people"];
+            return (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold border",
+                  tierMeta.bgTone,
+                  tierMeta.textTone,
+                  tierMeta.borderTone,
+                )}
+              >
+                <span>{tierMeta.icon}</span>
+                <span>{tierMeta.shortTitle}</span>
+              </span>
+            );
+          })()}
+
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold border",
@@ -176,6 +196,15 @@ export function ListingCard({
           {distanceLabel ? (
             <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
               📍 {distanceLabel}
+            </span>
+          ) : null}
+
+          {listing.allowAlternativeRouting ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-teal-500/40 bg-teal-500/5 px-2 py-0.5 text-[10px] font-medium text-teal-700 dark:text-teal-300"
+              title="If unclaimed before deadline, surplus auto-reroutes to Animal Feed or Biogas"
+            >
+              🔄 Circular Reroute On
             </span>
           ) : null}
         </div>

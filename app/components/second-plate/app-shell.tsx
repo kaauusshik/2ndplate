@@ -12,6 +12,9 @@ import {
   IconUser,
   IconSearch,
   IconHistory,
+  IconFlame,
+  IconCalendarEvent,
+  IconLeaf,
 } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
@@ -30,23 +33,50 @@ const NAV: Record<Role, NavItem[]> = {
   provider: [
     { label: "Dashboard", href: "/", icon: IconHome },
     { label: "Add Food", href: "/add", icon: IconPlus },
-    { label: "Donations", href: "/?tab=donations", icon: IconListDetails },
+    { label: "Urgent Demands", href: "/demands", icon: IconFlame },
+    { label: "Solidarity Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Zero-Waste Vision", href: "/vision", icon: IconLeaf },
     { label: "Impact", href: "/impact", icon: IconChartBar },
-    { label: "Profile", href: "/profile", icon: IconUser },
   ],
   ngo: [
     { label: "Discover", href: "/", icon: IconSearch },
+    { label: "Urgent Demands", href: "/demands", icon: IconFlame },
     { label: "Map View", href: "/map", icon: IconMap },
-    { label: "My Claims", href: "/?tab=mine", icon: IconHeart },
+    { label: "Solidarity Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Zero-Waste Vision", href: "/vision", icon: IconLeaf },
     { label: "Impact", href: "/impact", icon: IconChartBar },
-    { label: "Profile", href: "/profile", icon: IconUser },
   ],
   volunteer: [
     { label: "Tasks", href: "/", icon: IconTruck },
+    { label: "Urgent Demands", href: "/demands", icon: IconFlame },
     { label: "Nearby Map", href: "/map", icon: IconMap },
-    { label: "History", href: "/?tab=history", icon: IconHistory },
+    { label: "Solidarity Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Zero-Waste Vision", href: "/vision", icon: IconLeaf },
     { label: "Impact", href: "/impact", icon: IconChartBar },
-    { label: "Profile", href: "/profile", icon: IconUser },
+  ],
+};
+
+const MOBILE_NAV: Record<Role, NavItem[]> = {
+  provider: [
+    { label: "Home", href: "/", icon: IconHome },
+    { label: "Add Food", href: "/add", icon: IconPlus },
+    { label: "Demands", href: "/demands", icon: IconFlame },
+    { label: "Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Vision", href: "/vision", icon: IconLeaf },
+  ],
+  ngo: [
+    { label: "Discover", href: "/", icon: IconSearch },
+    { label: "Demands", href: "/demands", icon: IconFlame },
+    { label: "Map", href: "/map", icon: IconMap },
+    { label: "Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Vision", href: "/vision", icon: IconLeaf },
+  ],
+  volunteer: [
+    { label: "Tasks", href: "/", icon: IconTruck },
+    { label: "Demands", href: "/demands", icon: IconFlame },
+    { label: "Map", href: "/map", icon: IconMap },
+    { label: "Events", href: "/events", icon: IconCalendarEvent },
+    { label: "Vision", href: "/vision", icon: IconLeaf },
   ],
 };
 
@@ -63,6 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const here = `${location.pathname}${location.search}`;
   const items = NAV[role] ?? NAV.provider;
+  const mobileItems = MOBILE_NAV[role] ?? MOBILE_NAV.provider;
 
   const switchRole = (next: Role) => {
     setRole(next);
@@ -182,7 +213,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden shadow-lg"
       >
         <ul className="mx-auto grid max-w-md grid-cols-5 py-1">
-          {items.map((item) => {
+          {mobileItems.map((item) => {
             const Icon = item.icon;
             const active = here === item.href;
             return (

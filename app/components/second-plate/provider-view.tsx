@@ -34,12 +34,16 @@ import {
 import {
   type DonationRow,
   type Listing,
+  type FoodDestinationTier,
+  type NgoDemand,
   CATEGORY_LABELS,
   DONATION_STATUS_LABELS,
+  DESTINATION_TIER_META,
   formatDateTime,
   useNow,
   useListingsData,
   useDonationsData,
+  useNgoDemandsData,
   useSecondPlateActions,
 } from "@/lib/second-plate";
 import { cn } from "@/lib/utils";
@@ -57,9 +61,16 @@ import {
 export function ProviderView({ tab }: { tab: string }) {
   const listings = useListingsData();
   const donations = useDonationsData();
+  const demandsData = useNgoDemandsData();
+  const actions = useSecondPlateActions();
+
   const [filterTab, setFilterTab] = useState<"all" | "active" | "completed">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [tierFilter, setTierFilter] = useState<"all" | FoodDestinationTier>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [pledgeDemand, setPledgeDemand] = useState<NgoDemand | null>(null);
+  const [pledgePortions, setPledgePortions] = useState("20");
+  const [pledgeNote, setPledgeNote] = useState("");
   const now = useNow();
 
   if (listings.isLoading || donations.isLoading) {
@@ -75,6 +86,7 @@ export function ProviderView({ tab }: { tab: string }) {
 
   const allListings = (listings.data ?? []) as Listing[];
   const rows = (donations.data ?? []) as DonationRow[];
+  const openDemands = (demandsData.data ?? []).filter((d) => d.status === "OPEN");
 
   if (tab === "donations") {
     return <DonationHistory rows={rows} />;
@@ -106,6 +118,7 @@ export function ProviderView({ tab }: { tab: string }) {
     if (filterTab === "active" && l.status !== "AVAILABLE") return false;
     if (filterTab === "completed" && l.status !== "DELIVERED" && l.status !== "ACCEPTED") return false;
     if (categoryFilter !== "all" && l.category !== categoryFilter) return false;
+    if (tierFilter !== "all" && (l.destinationTier ?? "people") !== tierFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = l.title.toLowerCase().includes(q);
@@ -115,6 +128,21 @@ export function ProviderView({ tab }: { tab: string }) {
     }
     return true;
   });
+
+  const handlePledgeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pledgeDemand) return;
+    const count = parseInt(pledgePortions, 10);
+    if (isNaN(count) || count <= 0) return;
+
+    actions.pledgeToDemand({
+      demandId: pledgeDemand.id,
+      donorName: "Royal Heritage Grand Banquet",
+      portions: count,
+      note: pledgeNote.trim() || undefined,
+    });
+    setPledgeDemand(null);
+  };
 
   return (
     <div className="space-y-8">
@@ -250,6 +278,70 @@ export function ProviderView({ tab }: { tab: string }) {
         </section>
       )}
 
+      {/* Urgent NGO Demands Broadcast Widget */}
+      {openDemands.length > 0 && (
+        <section className="rounded-3xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <IconFlame size={18} className="animate-pulse" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">
+                  Urgent NGO Food Demands ({openDemands.length} Active Tonight)
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Nearby night shelters and patient attendant camps requesting specific meals before tonight&rsquo;s cutoff.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/demands"
+              className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 shrink-0"
+            >
+              Broadcast Board &rarr;
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {openDemands.slice(0, 2).map((demand) => (
+              <div
+                key={demand.id}
+                className="flex flex-col justify-between gap-2 rounded-2xl border border-amber-500/30 bg-card p-3.5 shadow-2xs"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-foreground">{demand.ngoName}</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[10px]">
+                      ⏰ Needed by {demand.deadlineTime}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Seeking: <strong className="text-foreground">{demand.foodType}</strong> ({demand.portionsPledged}/{demand.portionsNeeded} pledged)
+                  </p>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                  <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                    📍 {demand.location}
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setPledgeDemand(demand);
+                      setPledgePortions(String(Math.min(25, demand.portionsNeeded - demand.portionsPledged)));
+                    }}
+                    className="h-7 px-3 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 gap-1 shadow-2xs"
+                  >
+                    <IconHeartHandshake size={14} />
+                    Pledge Meals
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Unique KPI Matrix Cards */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         <UniqueStatCard
@@ -380,6 +472,43 @@ export function ProviderView({ tab }: { tab: string }) {
           </div>
         </div>
 
+        {/* 3-Tier Destination Channel Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1">
+          <span className="text-[11px] font-bold text-muted-foreground mr-1 shrink-0">Channel:</span>
+          <button
+            type="button"
+            onClick={() => setTierFilter("all")}
+            className={cn(
+              "rounded-full px-3 py-1 font-semibold transition-all border shrink-0",
+              tierFilter === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border/70 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            All Channels
+          </button>
+          {(["people", "animals", "compost"] as FoodDestinationTier[]).map((tierKey) => {
+            const meta = DESTINATION_TIER_META[tierKey];
+            const isSelected = tierFilter === tierKey;
+            return (
+              <button
+                key={tierKey}
+                type="button"
+                onClick={() => setTierFilter(tierKey)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold transition-all border shrink-0",
+                  isSelected
+                    ? cn(meta.bgTone, meta.textTone, meta.borderTone, "ring-2 ring-primary/20 font-bold")
+                    : "border-border/70 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span>{meta.icon}</span>
+                <span>{meta.shortTitle}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Listings Grid */}
         {displayedListings.length === 0 ? (
           <EmptyState
@@ -447,6 +576,60 @@ export function ProviderView({ tab }: { tab: string }) {
           </ul>
         )}
       </section>
+
+      {/* Quick Demand Pledge Modal */}
+      <Dialog open={!!pledgeDemand} onOpenChange={(open) => !open && setPledgeDemand(null)}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <IconHeartHandshake size={20} className="text-amber-500" />
+              Pledge Meals to {pledgeDemand?.ngoName}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Directly fulfill portions of {pledgeDemand?.foodType} needed by <strong>{pledgeDemand?.deadlineTime}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handlePledgeSubmit} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground">Portions You Can Supply</label>
+              <Input
+                type="number"
+                min="1"
+                max={pledgeDemand ? pledgeDemand.portionsNeeded - pledgeDemand.portionsPledged : 500}
+                value={pledgePortions}
+                onChange={(e) => setPledgePortions(e.target.value)}
+                className="rounded-xl font-bold"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground">Note / Pickup details</label>
+              <Input
+                value={pledgeNote}
+                onChange={(e) => setPledgeNote(e.target.value)}
+                placeholder="e.g. Ready hot in insulated thermo box"
+                className="rounded-xl"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPledgeDemand(null)}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold">
+                Confirm Food Pledge
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

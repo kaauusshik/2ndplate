@@ -21,16 +21,21 @@ import {
   DEFAULT_LOCATION,
   PROVIDER_TYPE_LABELS,
   SAFETY_CHECKLIST,
+  DESTINATION_TIER_META,
+  type FoodDestinationTier,
   toLocalInputValue,
   useSecondPlateActions,
 } from "@/lib/second-plate";
 import { ErrorState, errorMessage } from "./primitives";
+import { cn } from "@/lib/utils";
 
 type FormState = {
   providerName: string;
   providerType: string;
   title: string;
   category: string;
+  destinationTier: FoodDestinationTier;
+  allowAlternativeRouting: boolean;
   isVegetarian: boolean;
   description: string;
   portions: string;
@@ -54,6 +59,8 @@ function initialState(): FormState {
     providerType: "restaurant",
     title: "",
     category: "cooked_meal",
+    destinationTier: "people",
+    allowAlternativeRouting: true,
     isVegetarian: true,
     description: "",
     portions: "40",
@@ -78,6 +85,8 @@ const PRESETS = [
       providerType: "event",
       title: "Dum Biryani, Dal Makhani & Roti Batch",
       category: "cooked_meal",
+      destinationTier: "people" as FoodDestinationTier,
+      allowAlternativeRouting: true,
       isVegetarian: true,
       portions: "60",
       weightKg: "20",
@@ -89,12 +98,52 @@ const PRESETS = [
     },
   },
   {
+    label: "🐾 Animal Feed & Gaushala",
+    data: {
+      providerName: "Jaydev Community Bakery & Dairy",
+      providerType: "restaurant",
+      title: "Unsold Bran Loaves & Wholesome Cooked Grains",
+      category: "bakery",
+      destinationTier: "animals" as FoodDestinationTier,
+      allowAlternativeRouting: true,
+      isVegetarian: true,
+      portions: "40",
+      weightKg: "18",
+      storageInfo: "Clean dry bins safe for cattle and animal shelter feeders.",
+      temperatureInfo: "Cool ambient dry holding.",
+      allergens: "Wheat gluten",
+      pickupAddress: "Plot 19, Chandrasekharpur, Bhubaneswar",
+      contactPhone: "+91 94371 88990",
+    },
+  },
+  {
+    label: "♻️ Compost / Biogas Biomass",
+    data: {
+      providerName: "Central Kitchen Agro Processing",
+      providerType: "canteen",
+      title: "Clean Vegetable Trimmings & Kitchen Biomass",
+      category: "produce",
+      destinationTier: "compost" as FoodDestinationTier,
+      allowAlternativeRouting: false,
+      isVegetarian: true,
+      portions: "50",
+      weightKg: "35",
+      storageInfo: "Aerated organic collection bins ready for biomethanation digester.",
+      temperatureInfo: "Ambient organic collection.",
+      allergens: "None",
+      pickupAddress: "Industrial Estate, Mancheswar, Bhubaneswar",
+      contactPhone: "+91 99380 44556",
+    },
+  },
+  {
     label: "🥐 Evening Artisan Bakery",
     data: {
       providerName: "Artisan Crust Bakeshop",
       providerType: "restaurant",
       title: "Sourdough Loaves, Croissants & Multigrain Breads",
       category: "bakery",
+      destinationTier: "people" as FoodDestinationTier,
+      allowAlternativeRouting: true,
       isVegetarian: true,
       portions: "35",
       weightKg: "10.5",
@@ -247,6 +296,8 @@ export function AddFoodForm() {
         providerType: form.providerType as "restaurant",
         title: form.title.trim(),
         category: form.category as "cooked_meal",
+        destinationTier: form.destinationTier,
+        allowAlternativeRouting: form.allowAlternativeRouting,
         isVegetarian: form.isVegetarian,
         description: form.description.trim(),
         portions,
@@ -299,6 +350,79 @@ export function AddFoodForm() {
             </button>
           ))}
         </div>
+      </section>
+
+      {/* 3-Tier Surplus Destination Flow */}
+      <section className="rounded-3xl border border-border/80 bg-card p-6 shadow-xs space-y-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <span className="text-lg">🔄</span>
+              3-Tier Surplus Redirection Channel
+            </h2>
+            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Zero-Landfill Guarantee
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Designate the immediate recipient tier for this surplus based on its freshness and condition.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {(["people", "animals", "compost"] as FoodDestinationTier[]).map((tierKey) => {
+            const meta = DESTINATION_TIER_META[tierKey];
+            const isSelected = form.destinationTier === tierKey;
+            return (
+              <button
+                key={tierKey}
+                type="button"
+                onClick={() => set("destinationTier", tierKey)}
+                className={cn(
+                  "flex flex-col text-left p-3.5 rounded-2xl border transition-all text-xs relative",
+                  isSelected
+                    ? "border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20"
+                    : "border-border/70 bg-card/60 hover:bg-accent/50",
+                )}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xl">{meta.icon}</span>
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                      meta.bgTone,
+                      meta.textTone,
+                    )}
+                  >
+                    Tier {meta.tier}
+                  </span>
+                </div>
+                <p className="font-bold text-foreground">{meta.shortTitle}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                  {meta.sublabel}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Circular Auto-Fallback Checkbox */}
+        <label className="flex items-start gap-3 rounded-2xl border border-dashed border-teal-500/40 bg-teal-500/5 p-3.5 cursor-pointer hover:bg-teal-500/10 transition-colors">
+          <input
+            type="checkbox"
+            checked={form.allowAlternativeRouting}
+            onChange={(e) => set("allowAlternativeRouting", e.target.checked)}
+            className="mt-0.5 size-4 rounded text-primary focus:ring-primary"
+          />
+          <div className="text-xs">
+            <p className="font-bold text-teal-800 dark:text-teal-200 flex items-center gap-1.5">
+              <span>⇄</span> Enable Circular Cascade (If unclaimed by NGO)
+            </p>
+            <p className="text-muted-foreground text-[11px] mt-0.5 leading-relaxed">
+              If safe surplus is not accepted by a nearby NGO 1 hour before the cutoff, automatically broadcast to local animal shelters (Tier 2) or composting/biogas units (Tier 3) so zero food is lost.
+            </p>
+          </div>
+        </label>
       </section>
 
       {/* Food Details */}
