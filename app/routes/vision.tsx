@@ -180,7 +180,7 @@ export default function VisionRoute() {
                     Compost & Biogas
                   </h3>
                   <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mt-0.5">
-                    &ldquo;Compost nahale Biogas&rdquo; (Clean renewable energy)
+                    &ldquo;Compost and Biogas&rdquo; (Clean renewable energy)
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
